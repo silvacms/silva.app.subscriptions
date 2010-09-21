@@ -39,7 +39,7 @@ class SubscriptionForm(silvaforms.PublicForm):
 
     def update(self):
         service = queryUtility(ISubscriptionService)
-        if service is None or not service.subscriptionsEnabled():
+        if service is None or not service.is_subscriptions_enabled():
             raise NotFound(u"Subscription are not enabled.")
 
     @property
@@ -110,7 +110,7 @@ class SubscriptionConfirmationPage(silvaviews.Page):
             self.status = _(u"Invalid subscription confirmation.")
             return
         service = queryUtility(ISubscriptionService)
-        if service is None or not service.subscriptionsEnabled():
+        if service is None or not service.is_subscriptions_enabled():
             self.status = _("Subscription no longer available.")
             return
         try:
@@ -132,7 +132,7 @@ class SubscriptionCancellationConfirmationPage(SubscriptionConfirmationPage):
             self.status = _(u"Invalid confirmation.")
             return
         service = queryUtility(ISubscriptionService)
-        if service is None or not service.subscriptionsEnabled():
+        if service is None or not service.is_subscriptions_enabled():
             self.status = _(u"Subscription no longer available.")
             return
         try:

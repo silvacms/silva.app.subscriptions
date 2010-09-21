@@ -28,7 +28,7 @@ class SubscriptionServiceTestCase(SilvaTestCase.SilvaTestCase):
         mailhost = self.root[MAILHOST_ID]
         mailhost._send = self._old_send
 
-    def test_requestSubscription(self):
+    def test_request_subscription(self):
         # XXX only test the exception-raising code paths, since I don't
         # yet know how to test the email sending
         #
@@ -37,12 +37,14 @@ class SubscriptionServiceTestCase(SilvaTestCase.SilvaTestCase):
         self.assertRaises(
             errors.NotSubscribableError,
             self.service.requestSubscription, self.service, emailaddress)
+
         # even if all parameters are correct, content has to have its
         # subscribability set
         emailaddress = "foo@localhost"
         self.assertRaises(
             errors.NotSubscribableError,
             self.service.requestSubscription, self.doc, emailaddress)
+
         # Set subscribability, invalid emailaddress though
         emailaddress = "foo bar baz"
         subscr = subscribable.getSubscribable(self.doc)
@@ -50,6 +52,7 @@ class SubscriptionServiceTestCase(SilvaTestCase.SilvaTestCase):
         self.assertRaises(
             errors.InvalidEmailaddressError,
             self.service.requestSubscription, self.doc, emailaddress)
+
         # emailaddress already subscribed
         emailaddress = "foo@localhost.com"
         subscr = subscribable.getSubscribable(self.doc)
@@ -140,6 +143,7 @@ class SubscriptionServiceTestCase(SilvaTestCase.SilvaTestCase):
         self.assertRaises(
             errors.CancellationError,
             self.service.unsubscribe, ref, emailaddress, token)
+
 
 def test_suite():
     import unittest

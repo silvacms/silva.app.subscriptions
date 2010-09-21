@@ -8,4 +8,8 @@ from silva.core.interfaces import ISilvaService, ISilvaLocalService
 
 
 class ISubscriptionService(ISilvaService, ISilvaLocalService):
-    pass
+
+    def sendNotificationEmail(content, template_id):
+        """Render the given template using content information and
+        send the result to the subscribed people.
+        """

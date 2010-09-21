@@ -13,15 +13,15 @@ from OFS import Folder
 # Silva
 from Products.Silva import SilvaPermissions
 from Products.Silva import MAILDROPHOST_AVAILABLE, MAILHOST_ID
-from Products.Silva.adapters import subscribable
 from Products.Silva.mail import sendmail
 from Products.Silva.install import add_helper, fileobject_add_helper
 
 from five import grok
+from zope import interface, schema
 from silva.app.subscriptions import errors
 from silva.app.subscriptions.interfaces import ISubscriptionService
 from silva.core import conf as silvaconf
-from silva.core.interfaces import IHaunted, IVersionedContent
+from silva.core.interfaces import IHaunted, IVersionedContent, ISubscribable
 from silva.core.interfaces.events import IContentPublishedEvent
 from silva.core.references.reference import get_content_id, get_content_from_id
 from silva.core.services.base import SilvaService
@@ -49,64 +49,55 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
     # subscriptions are disabled by default
     _enabled = False
+    _fromaddress = 'Silva Subscription Service <subscription-service@example.com>'
 
     # ZMI methods
 
     security.declareProtected(
-        SilvaPermissions.ViewManagementScreens, 'enableSubscriptions')
-    def enableSubscriptions(self):
+        SilvaPermissions.ViewManagementScreens, 'enable_subscriptions')
+    def enable_subscriptions(self):
         """Called TTW from ZMI to enable the feature
         """
         self._enabled = True
 
     security.declareProtected(
-        SilvaPermissions.ViewManagementScreens, 'disableSubscriptions')
-    def disableSubscriptions(self):
+        SilvaPermissions.ViewManagementScreens, 'disable_subscriptions')
+    def disable_subscriptions(self):
         """Called TTW from ZMI to disable the feature
         """
         self._enabled = False
 
-    security.declareProtected(SilvaPermissions.View, 'subscriptionsEnabled')
-    def subscriptionsEnabled(self):
+    security.declareProtected(SilvaPermissions.View, 'is_subscriptions_enabled')
+    def is_subscriptions_enabled(self):
         return self._enabled
 
     # Called from subscription UI
 
-    security.declareProtected(SilvaPermissions.View, 'isSubscribable')
-    def isSubscribable(self, content):
-        # Convenience method to quickly determine if content is
-        # subscribable, without having to get the content's
-        # subscribable-adapter for it - e.g. in a pagetemplate.
-        adapted = subscribable.getSubscribable(content)
-        if adapted is None:
-            return False
-        return adapted.isSubscribable()
-
     security.declareProtected(SilvaPermissions.View, 'requestSubscription')
-    def requestSubscription(self, content, emailaddress):
+    def requestSubscription(self, content, email):
         # Send out request for subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        adapted = subscribable.getSubscribable(content)
+        adapted = ISubscribable(content, None)
         # see if content is subscribable
-        if adapted is None or not adapted.isSubscribable():
+        if adapted is None or not adapted.is_subscribable():
             raise errors.NotSubscribableError()
         # validate address
-        if not isValidMailAddress(emailaddress):
+        if not isValidMailAddress(email):
             raise errors.InvalidEmailaddressError()
         # generate confirmation token using adapter
-        token = adapted.generateConfirmationToken(emailaddress)
+        token = adapted.generateConfirmationToken(email)
         # check if not yet subscribed
-        subscription = adapted.getSubscription(emailaddress)
+        subscription = adapted.getSubscription(email)
         if subscription is not None:
             # send an email informing about this situation
             self._sendSuperfluousSubscriptionRequestEmail(
-                content, emailaddress, token, 'already_subscribed_template',
+                content, email, token, 'already_subscribed_template',
                 'confirm_subscription', subscription.contentSubscribedTo())
             raise errors.AlreadySubscribedError()
         # send confirmation email to emailaddress
         self._sendConfirmationEmail(
-            content, emailaddress, token,
+            content, email, token,
             'subscription_confirmation_template', 'confirm_subscription')
 
     security.declareProtected(SilvaPermissions.View, 'requestCancellation')
@@ -114,7 +105,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Send out request for cancellation of the subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        adapted = subscribable.getSubscribable(content)
+        adapted = ISubscribable(content, None)
         # see if content is subscribable
         if adapted is None:
             raise errors.NotSubscribableError()
@@ -122,7 +113,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         if not isValidMailAddress(emailaddress):
             raise errors.InvalidEmailaddressError()
         # check if indeed subscribed
-        if not adapted.isSubscribed(emailaddress):
+        if not adapted.is_subscribed(emailaddress):
             # send an email informing about this situation
             self._sendSuperfluousCancellationRequestEmail(
                 content, emailaddress, 'not_subscribed_template')
@@ -143,7 +134,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         #
         context = get_content_from_id(ref)
         assert context is not None, u'Invalid content'
-        subscr = subscribable.getSubscribable(context)
+        subscr = ISubscribable(context, None)
         if subscr is None:
             raise errors.SubscriptionError()
         emailaddress = urllib.unquote(emailaddress)
@@ -158,7 +149,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         #
         context = get_content_from_id(ref)
         assert context is not None, u'Invalid content'
-        subscr = subscribable.getSubscribable(context)
+        subscr = ISubscribable(context, None)
         if subscr is None:
             raise errors.CancellationError()
         emailaddress = urllib.unquote(emailaddress)
@@ -176,67 +167,62 @@ class SubscriptionService(Folder.Folder, SilvaService):
             value = value.encode('utf-8')
         return value
 
-    def _sendNotificationEmail(self, content):
+    security.declarePrivate('sendNotificationEmail')
+    def sendNotificationEmail(
+        self, content, templateid='publication_event_template'):
+        if not self.is_subscriptions_enabled():
+            return
         data = {}
         data['contenturl'] = content.absolute_url()
         data['contenttitle'] = content.get_title().encode('utf-8')
         data['subject'] = self._metadata(content, 'silva-extra', 'subject')
         data['description'] = self._metadata(content, 'silva-extra', 'content_description')
-        adapted = subscribable.getSubscribable(content)
-        assert adapted # content should support subscriptions
-        template = str(self['publication_event_template'])
+        adapted = ISubscribable(content)
+        template = str(self[templateid])
         subscriptions = adapted.getSubscriptions()
         for subscription in subscriptions:
-            contentsubscribedto = subscription.contentSubscribedTo()
-            data['subscribedcontenturl'] = contentsubscribedto.absolute_url()
+            content_url = subscription.content.absolute_url()
+            data['subscribedcontenturl'] =  content_url
             data['serviceurlforsubscribedcontent'] = \
-                contentsubscribedto.absolute_url() + '/subscriptions.html'
-            data['toaddress'] = subscription.emailaddress()
+                content_url + '/subscriptions.html'
+            data['toaddress'] = subscription.email
             self._sendEmail(template, data)
 
-    def _sendSuperfluousCancellationRequestEmail(
-        self, content, emailaddress, template_id):
-        template = str(self[template_id])
+    def _get_default_data(self, content, email):
         data = {}
-        data['toaddress'] = emailaddress
+        data['fromaddress'] = self._fromaddress
+        data['toaddress'] = email
         data['contenturl'] = content.absolute_url()
         data['contenttitle'] = content.get_title().encode('utf-8')
+        return data
+
+    def _sendSuperfluousCancellationRequestEmail(self, content, email, template_id):
+        template = str(self[template_id])
+        data = self._get_default_data(content, email)
         self._sendEmail(template, data)
 
     def _sendSuperfluousSubscriptionRequestEmail(
-        self, content, emailaddress, token, template_id, action, subscribed_content):
-        ref = get_content_id(content)
+        self, content, email, token, template_id, action, subscribed_content):
         template = str(self[template_id])
-        content_url = content.absolute_url()
-        subscribed_url = subscribed_content.absolute_url()
-        data = {}
-        data['toaddress'] = emailaddress
-        data['contenturl'] = content_url
-        data['contenttitle'] = content.get_title().encode('utf-8')
-        emailaddress = urllib.quote(emailaddress)
+        data = self._get_default_data(content, email)
         data['confirmationurl'] = '%s/subscriptions.html/@@%s?%s' % (
-            content_url, action, urllib.urlencode((
-                ('content', ref),
-                ('email', emailaddress),
+            content.absolute_url(), action, urllib.urlencode((
+                ('content', get_content_id(content)),
+                ('email', urllib.quote(email)),
                 ('token', token)),))
+        subscribed_url = subscribed_content.absolute_url()
         data['subscribedcontenturl'] = subscribed_url
         data['serviceurlforsubscribedcontent'] = subscribed_url + '/subscriptions.html'
         self._sendEmail(template, data)
 
     def _sendConfirmationEmail(
-        self, content, emailaddress, token, template_id, action):
-        ref = get_content_id(content)
+        self, content, email, token, template_id, action):
         template = str(self[template_id])
-        content_url = content.absolute_url()
-        data = {}
-        data['toaddress'] = emailaddress
-        data['contenturl'] = content_url
-        data['contenttitle'] = content.get_title().encode('utf-8')
-        emailaddress = urllib.quote(emailaddress)
+        data = self._get_default_data(content, email)
         data['confirmationurl'] = '%s/subscriptions.html/@@%s?%s' % (
-            content_url, action, urllib.urlencode((
-                ('content', ref),
-                ('email', emailaddress),
+            content.absolute_url(), action, urllib.urlencode((
+                ('content', get_content_id(content)),
+                ('email', urllib.quote(email)),
                 ('token', token)),))
         self._sendEmail(template, data)
 
@@ -246,6 +232,13 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
 
 InitializeClass(SubscriptionService)
+
+
+class ISubscriptionSettings(interface.Interface):
+    _fromaddress = schema.TextLine(
+        title=_(u"From address"),
+        description=_(u"Address used to send notification emails"),
+        required=True)
 
 
 class SubscriptionServiceManagementView(silvaforms.ZMIComposedForm):
@@ -267,29 +260,41 @@ class SubscriptionServiceActivateForm(silvaforms.ZMISubForm):
     description = _(u"Activate sending emails notifications")
 
     def available(self):
-        return not self.context.subscriptionsEnabled()
+        return not self.context.is_subscriptions_enabled()
 
     @silvaforms.action(_(u'Activate'))
     def action_activate(self):
-        self.context.enableSubscriptions()
+        self.context.enable_subscriptions()
         self.status = _(u"Subscriptions activated.")
         return silvaforms.SUCCESS
+
+
+class SubscriptionServiceOptionForm(silvaforms.ZMISubForm):
+    grok.context(SubscriptionService)
+    silvaforms.view(SubscriptionServiceManagementView)
+    silvaforms.order(30)
+
+    label = _(u"Configure subscriptions")
+    description = _(u"Modify generic settings")
+    ignoreContent = False
+    fields = silvaforms.Fields(ISubscriptionSettings)
+    actions = silvaforms.Actions(silvaforms.EditAction())
 
 
 class SubscriptionServiceDisableForm(silvaforms.ZMISubForm):
     grok.context(SubscriptionService)
     silvaforms.view(SubscriptionServiceManagementView)
-    silvaforms.order(25)
+    silvaforms.order(20)
 
     label = _(u"Disable subscriptions")
     description = _(u"Disable sending emails notifications")
 
     def available(self):
-        return self.context.subscriptionsEnabled()
+        return self.context.is_subscriptions_enabled()
 
     @silvaforms.action(_(u'Disable'))
     def action_disable(self):
-        self.context.disableSubscriptions()
+        self.context.disable_subscriptions()
         self.status = _(u"Subscriptions disabled.")
         return silvaforms.SUCCESS
 
@@ -297,7 +302,7 @@ class SubscriptionServiceDisableForm(silvaforms.ZMISubForm):
 class SubscriptionServiceInstallMaildropHostForm(silvaforms.ZMISubForm):
     grok.context(SubscriptionService)
     silvaforms.view(SubscriptionServiceManagementView)
-    silvaforms.order(30)
+    silvaforms.order(40)
 
     label = _(u"Install MaildropHost")
     description = _(u"Install a MaildropHost service to send emails")
@@ -349,7 +354,7 @@ def content_published(content, event):
     service = queryUtility(ISubscriptionService)
     if service is not None:
         # first send notification for content
-        service._sendNotificationEmail(content)
+        service.sendNotificationEmail(content)
         # now send email for potential haunting ghosts
         for haunting in IHaunted(content).getHauting():
-            service._sendNotificationEmail(haunting)
+            service.sendNotificationEmail(haunting)

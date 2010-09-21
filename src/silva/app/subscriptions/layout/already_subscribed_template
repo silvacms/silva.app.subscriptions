@@ -1,10 +1,11 @@
 To: <%(toaddress)s>
-From: Silva Subscription Service <subscription-service@do.not.reply>
-Subject: Silva Subscription Service - "%(contenttitle)s" subscription confirmation
+From: Silva Subscription Service <subscription-service@example.com>
+Subject: subscription confirmation - "%(contenttitle)s" subscription confirmation
 Content-Type: text/plain; charset=utf-8
 
 
-You (or someone using your email address) requested a subscription for receiving change notifications for the page:
+You (or someone using your email address) requested a subscription for
+receiving change notifications for the page:
 
 URL: %(contenturl)s
 
@@ -14,7 +15,9 @@ However, this emailaddress is *already* subscribed for this URL:
 
 %(subscribedcontenturl)s
 
-which means you would already be notfied of changes. You can still confirm your subscription request by going to this URL (usually this URL is clickable):
+which means you would already be notfied of changes. You can still
+confirm your subscription request by going to this URL (usually this
+URL is clickable):
 
 %(confirmationurl)s
 

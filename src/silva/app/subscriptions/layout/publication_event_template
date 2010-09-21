@@ -1,5 +1,5 @@
 To: <%(toaddress)s>
-From: Silva Subscription Service <subscription-service@do.not.reply>
+From: Silva Subscription Service <subscription-service@example.com>
 Subject: Silva Subscription Service - "%(contenttitle)s" change notification
 Content-Type: text/plain; charset=utf-8
 
@@ -12,8 +12,8 @@ title: %(contenttitle)s
 subject: %(subject)s
 description: %(description)s
 
-
-You're receiving this notification message because you're subscribed to changes for this URL:
+You're receiving  this notification message  because you're subscribed
+to changes for this URL:
 
 %(subscribedcontenturl)s
 
