@@ -5,11 +5,24 @@
 
 from five import grok
 from silva.app.subscriptions.interfaces import ISubscriptionService
-from silva.core.interfaces import ISubscribable
+from silva.core.interfaces import ISubscribable, ISilvaObject
 from silva.core.smi import smi as silvasmi
 from silva.core.smi.interfaces import IPropertiesTab
 from silva.translations import translate as _
 from zope.component import queryUtility
+from zeam.form import silva as silvaforms
+
+
+# class SubscriptionForm(silvaforms.SMIForm):
+#     """Edit subscriptions.
+#     """
+#     grok.context(ISilvaObject)
+#     grok.implements(IPropertiesTab)
+#     grok.name('tab_subscriptions')
+#     grok.require('silva.ManageSilvaContent')
+
+#     tab = 'properties'
+#     label = _(u"manage subscriptions")
 
 
 class SubscriptionButton(silvasmi.SMIMiddleGroundButton):
@@ -27,3 +40,4 @@ class SubscriptionButton(silvasmi.SMIMiddleGroundButton):
             return False
         service = queryUtility(ISubscriptionService)
         return service is not None and service.is_subscriptions_enabled()
+
