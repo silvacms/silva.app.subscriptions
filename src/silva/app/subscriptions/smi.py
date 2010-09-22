@@ -5,6 +5,8 @@
 
 from five import grok
 from silva.app.subscriptions.interfaces import ISubscriptionService
+from silva.app.subscriptions.interfaces import (
+    ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
 from silva.core.interfaces import ISubscribable, ISilvaObject
 from silva.core.smi import smi as silvasmi
 from silva.core.smi.interfaces import IPropertiesTab
@@ -17,17 +19,15 @@ from zope.interface import Interface
 from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
 
-from Products.Silva.adapters import subscribable
-
 
 @grok.provider(IContextSourceBinder)
 def subscribability_options(context):
     options = []
     settings = ISubscribable(context)
     for value, title in [
-        (subscribable.ACQUIRE_SUBSCRIBABILITY, _(u"Acquire settings from above")),
-        (subscribable.NOT_SUBSCRIBABLE, _(u"Disable subscriptions")),
-        (subscribable.SUBSCRIBABLE, _(u"Enable subscriptions"))]:
+        (ACQUIRE_SUBSCRIBABILITY, _(u"Acquire settings from above")),
+        (NOT_SUBSCRIBABLE, _(u"Disable subscriptions")),
+        (SUBSCRIBABLE, _(u"Enable subscriptions"))]:
         if value in settings.subscribability_possibilities:
             options.append(
                 SimpleTerm(value=value, token=str(value), title=title))

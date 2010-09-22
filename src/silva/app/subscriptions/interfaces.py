@@ -6,6 +6,11 @@
 
 from silva.core.interfaces import ISilvaService, ISilvaLocalService
 
+# Subscription modes
+NOT_SUBSCRIBABLE = 0
+SUBSCRIBABLE = 1
+ACQUIRE_SUBSCRIBABILITY = 2
+
 
 class ISubscriptionService(ISilvaService, ISilvaLocalService):
 

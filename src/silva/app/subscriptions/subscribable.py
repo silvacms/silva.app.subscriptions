@@ -7,25 +7,23 @@ import hashlib
 import time
 import datetime
 
-from App.class_init import InitializeClass
-from BTrees.OOBTree import OOBTree
 from Acquisition import aq_parent
+from BTrees.OOBTree import OOBTree
 
-from silva.core import interfaces
 from five import grok
+from silva.core import interfaces
+from silva.app.subscriptions.interfaces import (
+    ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
 
 
 TIMEOUTINDAYS =  3
-
-NOT_SUBSCRIBABLE = 0
-SUBSCRIBABLE = 1
-ACQUIRE_SUBSCRIBABILITY = 2
 
 def generate_token(*args):
     hash = hashlib.md5()
     for arg in args:
         hash.update(str(args))
     return hash.hexdigest()
+
 
 class Subscription(object):
     grok.implements(interfaces.ISubscription)
@@ -168,9 +166,6 @@ class Subscribable(grok.Adapter):
 
     isValidSubscription = _validate
     isValidCancellation = _validate
-
-
-InitializeClass(Subscribable)
 
 
 class SubscribableRoot(Subscribable):
