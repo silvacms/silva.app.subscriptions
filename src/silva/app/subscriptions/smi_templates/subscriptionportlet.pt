@@ -1,5 +1,9 @@
 <div class="info" i18n:domain="silva">
-  <h3 i18n:translate="">Subscriptions info</h3>
+  <h3>
+    <img src="#" alt="Subscription"
+         tal:attributes="src static/subscribe.gif" />
+    <tal:title i18n:translate="">Subscriptions info</tal:title>
+  </h3>
   <tal:status tal:condition="not:viewlet/is_enabled"
               i18n:translate="">
     This content can not be subscribed to.
