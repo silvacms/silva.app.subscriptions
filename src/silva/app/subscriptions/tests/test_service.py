@@ -2,104 +2,100 @@
 # See also LICENSE.txt
 # $Id$
 
-from Products.Silva.adapters import subscribable
-from Products.Silva import MAILHOST_ID
-from Products.Silva import subscriptionerrors as errors
+import unittest
 
-import SilvaTestCase
+from zope.component import getUtility
+from zope.interface.verify import verifyObject
+from silva.app.subscriptions import errors
+from silva.app.subscriptions.interfaces import (
+    ISubscriptionService, ISubscriptionManager, SUBSCRIBABLE)
+from silva.app.subscriptions.service import get_content_id
+from silva.app.subscriptions.testing import FunctionalLayer
 
-def _patched_send(*args, **kwargs):
-    return
 
-class SubscriptionServiceTestCase(SilvaTestCase.SilvaTestCase):
+class SubscriptionServiceTestCase(unittest.TestCase):
     """Test the Subscription Service.
     """
-    def afterSetUp(self):
-        self.service = getattr(self.root, 'service_subscriptions')
-        self.doc = self.add_document(self.root, 'doc', u'Test Document')
-        self.folder = self.add_folder(self.root, 'folder', u'Test Folder')
-        self.ghost = self.add_ghost(self.root, 'ghost')
-        self.link = self.add_link(self.root, 'link', u'Test Link', 'url')
-        mailhost = self.root[MAILHOST_ID]
-        self._old_send = mailhost._send
-        mailhost._send = _patched_send
+    layer = FunctionalLayer
 
-    def beforeTearDown(self):
-        mailhost = self.root[MAILHOST_ID]
-        mailhost._send = self._old_send
+    def setUp(self):
+        self.root = self.layer.get_application()
+        self.layer.login('manager')
+        factory = self.root.manage_addProduct['silva.app.subscriptions']
+        factory.manage_addSubscriptionService()
 
-    def test_request_subscription(self):
-        # XXX only test the exception-raising code paths, since I don't
-        # yet know how to test the email sending
-        #
+        factory = self.root.manage_addProduct['SilvaDocument']
+        factory.manage_addDocument('document', 'Document')
+        factory = self.root.manage_addProduct['Silva']
+        factory.manage_addFolder('folder', u'Test Folder')
+        factory.manage_addGhost('ghost', None, haunted=self.root.document)
+        factory.manage_addFile('file', u'Downloable File')
+
+    def test_service(self):
+        service = getUtility(ISubscriptionService)
+        self.assertTrue(verifyObject(ISubscriptionService, service))
+        self.assertEqual(self.root.service_subscriptions, service)
+
+    def test_request_subscription_failures(self):
+        """Test cases where you can't request subscription to a content.
+        """
+        service = getUtility(ISubscriptionService)
         # first use something not subscribable at all
-        emailaddress = "foo@localhost"
         self.assertRaises(
             errors.NotSubscribableError,
-            self.service.requestSubscription, self.service, emailaddress)
+            service.request_subscription, self.root.file, "foo@foo.com")
 
         # even if all parameters are correct, content has to have its
         # subscribability set
-        emailaddress = "foo@localhost"
         self.assertRaises(
             errors.NotSubscribableError,
-            self.service.requestSubscription, self.doc, emailaddress)
+            service.request_subscription, self.root.document, "foo@foo.com")
 
         # Set subscribability, invalid emailaddress though
-        emailaddress = "foo bar baz"
-        subscr = subscribable.getSubscribable(self.doc)
-        subscr.setSubscribability(subscribable.SUBSCRIBABLE)
+        manager = ISubscriptionManager(self.root.document)
+        manager.subscribability = SUBSCRIBABLE
         self.assertRaises(
             errors.InvalidEmailaddressError,
-            self.service.requestSubscription, self.doc, emailaddress)
+            service.request_subscription, self.root.document, "foo bar baz")
 
         # emailaddress already subscribed
-        emailaddress = "foo@localhost.com"
-        subscr = subscribable.getSubscribable(self.doc)
-        subscr.setSubscribability(subscribable.SUBSCRIBABLE)
-        subscr.subscribe(emailaddress)
+        manager.subscribe("foo@foo.com")
         self.assertRaises(
             errors.AlreadySubscribedError,
-            self.service.requestSubscription, self.doc, emailaddress)
+            service.request_subscription, self.root.document, "foo@foo.com")
 
-    def test_requestCancellation(self):
-        # XXX only test the exception-raising code paths, since I don't
-        # yet know how to test the email sending
-        #
+    def test_request_subscription(self):
+        """Test request_subscription sends a mail.
+        """
+        manager = ISubscriptionManager(self.root.document)
+        manager.subscribability = SUBSCRIBABLE
+
+        service = getUtility(ISubscriptionService)
+        service.request_subscription(self.root.document, "foo@foo.com")
+
+        message = self.root.service_mailhost.read_last_message()
+        self.assertNotEqual(message, None)
+        self.assertEqual(message.mto, ['foo@foo.com'])
+
+    def test_request_cancellation_failures(self):
+        """Test request_cancellation failures cases.
+        """
+        service = getUtility(ISubscriptionService)
+
         # first use something not subscribable at all
-        emailaddress = "foo@localhost"
         self.assertRaises(
             errors.NotSubscribableError,
-            self.service.requestCancellation, self.service, emailaddress)
+            service.request_cancellation, self.root.file, "foo@foo.com")
+
         # invalid emailaddress
-        emailaddress = "foo bar baz"
         self.assertRaises(
             errors.InvalidEmailaddressError,
-            self.service.requestCancellation, self.doc, emailaddress)
+            service.request_cancellation, self.root.document, "foo bar baz")
+
         # emailaddress was not subscribed
-        emailaddress = "foo@localhost.com"
         self.assertRaises(
             errors.NotSubscribedError,
-            self.service.requestCancellation, self.doc, emailaddress)
-
-    def _testException(self, klass, message, method, *args, **kwargs):
-        try:
-            method(*args, **kwargs)
-        except klass, e:
-            self.assertEquals(message, str(e))
-
-    def test__sendConfirmationRequest(self):
-        path = self.doc.getPhysicalPath()
-        emailaddress = "foo@localhost"
-        subscr = subscribable.getSubscribable(self.doc)
-        token = subscr.generateConfirmationToken(emailaddress)
-        subscr = subscribable.getSubscribable(self.doc)
-        # XXX how to continue to test the sending of the email??
-        #self.service._sendConfirmationEmail(
-        #    self.doc, emailaddress, token,
-        #    'subscription_confirmation_template', 'subscribe')
-        #message = self.smtpserver.getMessagesDict()[self.service.sender]
-        #self.assertEquals(emailaddress, message.recipients)
+            service.request_cancellation, self.root.document, "foo@foo.com")
 
     def test_subscribe(self):
         ref = self.service._create_ref(self.doc)
@@ -146,7 +142,6 @@ class SubscriptionServiceTestCase(SilvaTestCase.SilvaTestCase):
 
 
 def test_suite():
-    import unittest
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(SubscriptionServiceTestCase))
     return suite

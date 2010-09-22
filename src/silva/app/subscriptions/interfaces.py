@@ -32,6 +32,11 @@ class ISubscriptionManager(Interface):
         False otherwise.
         """
 
+    def is_subscribed(email):
+        """Return True is the specified emailaddress is already subscribed
+        for the adapted object. False otherwise.
+        """
+
     def subscribe(email):
         """Subscribe email for the content.
         """
@@ -40,7 +45,7 @@ class ISubscriptionManager(Interface):
         """Unsubscribe emailaddress for the content.
         """
 
-
+    # To be reviewed
     def getSubscriptions():
         """Return a list of ISubscription objects
         """
@@ -55,17 +60,36 @@ class ISubscriptionManager(Interface):
         valid cancellation request. False otherwise.
         """
 
-    def isSubscribed(emailaddress):
-        """Return True is the specified emailaddress is already subscribed
-        for the adapted object. False otherwise.
-        """
-
     def generateConfirmationToken(emailaddress):
         """Generate a token used for the subscription/cancellation cycle.
         """
 
 
 class ISubscriptionService(ISilvaService, ISilvaLocalService):
+
+    def enable_subscriptions():
+        """Enable subscriptions in that part of the site.
+        """
+
+    def disable_subscriptions():
+        """Disable susbcriptions in that part of the site.
+        """
+
+    def is_subscriptions_enabled():
+        """Return true if subscriptions are enabled in that part of
+        the site.
+        """
+
+    def request_subscription(content, email):
+        """Request a subscription to the given content by the given
+        email.
+        """
+
+    def request_cancellation(content, email):
+        """Request to cancel a subscription to the given content by
+        the given email.
+        """
+
 
     def sendNotificationEmail(content, template_id):
         """Render the given template using content information and

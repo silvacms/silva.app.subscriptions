@@ -1,14 +1,15 @@
 # Copyright (c) 2002-2010 Infrae. All rights reserved.
 # See also LICENSE.txt
-# $Revision$
-import SilvaTestCase
+# $Id$
+
 
 from Products.Silva.adapters import subscribable
 from Products.Silva import Indexer
 
 from BTrees.OOBTree import OOBTree
 
-class SubscribableTestCase(SilvaTestCase.SilvaTestCase):
+
+class DisabledSubscribableTestCase(object):
     """Test the Subscribable adapter.
     """
     def afterSetUp(self):
@@ -47,18 +48,6 @@ class SubscribableTestCase(SilvaTestCase.SilvaTestCase):
         self.assertEquals(None, subscr)
         subscr = subscribable.getSubscribable(self.indexer)
         self.assertEquals(None, subscr)
-
-    def test_subscribability(self):
-        subscr = subscribable.getSubscribable(self.doc)
-        # content aqcuires subscribability by default
-        self.assertEquals(
-            subscribable.ACQUIRE_SUBSCRIBABILITY, subscr.subscribability())
-        # now make content subscribable
-        subscr.setSubscribability(subscribable.SUBSCRIBABLE)
-        self.assertEquals(subscribable.SUBSCRIBABLE, subscr.subscribability())
-        # and make it not subscribable anymore
-        subscr.setSubscribability(subscribable.NOT_SUBSCRIBABLE)
-        self.assertEquals(subscribable.NOT_SUBSCRIBABLE, subscr.subscribability())
 
     def test__buildSubscribablesList(self):
         # first make root subscribable (acquired by the contained objects)
@@ -119,29 +108,6 @@ class SubscribableTestCase(SilvaTestCase.SilvaTestCase):
         expected = [self.doc, self.doc, self.doc]
         self.assertEquals(expected, contentsubscribedtos)
 
-    def test_subscribe(self):
-        subscr = subscribable.getSubscribable(self.doc)
-        subscr.setSubscribability(subscribable.SUBSCRIBABLE)
-        l = ['foo@bar.baz', 'baz@bar.baz', 'qux@bar.baz']
-        l.sort()
-        for addr in l:
-            subscr.subscribe(addr)
-        subscriptions = subscr.getSubscriptions()
-        emailaddresses = [o.emailaddress() for o in subscriptions]
-        emailaddresses.sort()
-        self.assertEquals(l, emailaddresses)
-
-    def test_unsubscribe(self):
-        subscr = subscribable.getSubscribable(self.doc)
-        subscr.setSubscribability(subscribable.SUBSCRIBABLE)
-        d = {'foo@bar.baz':None, 'baz@bar.baz':None, 'qux@bar.baz':None}
-        self.doc.__subscriptions__ = OOBTree(d)
-        for addr in d.keys():
-            subscr.unsubscribe(addr)
-        subscriptions = subscr.getSubscriptions()
-        emailaddresses = [o.emailaddress() for o in subscriptions]
-        self.assertEquals([], emailaddresses)
-
     def test_generateConfirmationToken(self):
         # We just test whether two subsequently generated tokens are not
         # identical
@@ -182,8 +148,3 @@ class SubscribableTestCase(SilvaTestCase.SilvaTestCase):
         subscr.subscribe(addr)
         self.assert_(subscr.isSubscribed(addr))
 
-def test_suite():
-    import unittest
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(SubscribableTestCase))
-    return suite

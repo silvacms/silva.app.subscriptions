@@ -57,15 +57,11 @@ class SubscriptionService(Folder.Folder, SilvaService):
     security.declareProtected(
         SilvaPermissions.ViewManagementScreens, 'enable_subscriptions')
     def enable_subscriptions(self):
-        """Called TTW from ZMI to enable the feature
-        """
         self._enabled = True
 
     security.declareProtected(
         SilvaPermissions.ViewManagementScreens, 'disable_subscriptions')
     def disable_subscriptions(self):
-        """Called TTW from ZMI to disable the feature
-        """
         self._enabled = False
 
     security.declareProtected(SilvaPermissions.View, 'is_subscriptions_enabled')
@@ -75,7 +71,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
     # Called from subscription UI
 
     security.declareProtected(SilvaPermissions.View, 'requestSubscription')
-    def requestSubscription(self, content, email):
+    def request_subscription(self, content, email):
         # Send out request for subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
@@ -94,7 +90,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
             # send an email informing about this situation
             self._sendSuperfluousSubscriptionRequestEmail(
                 content, email, token, 'already_subscribed_template',
-                'confirm_subscription', subscription.contentSubscribedTo())
+                'confirm_subscription', subscription.content)
             raise errors.AlreadySubscribedError()
         # send confirmation email to emailaddress
         self._sendConfirmationEmail(
@@ -102,7 +98,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
             'subscription_confirmation_template', 'confirm_subscription')
 
     security.declareProtected(SilvaPermissions.View, 'requestCancellation')
-    def requestCancellation(self, content, emailaddress):
+    def request_cancellation(self, content, emailaddress):
         # Send out request for cancellation of the subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #

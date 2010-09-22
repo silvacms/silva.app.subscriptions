@@ -58,7 +58,7 @@ class SubscriptionForm(silvaforms.PublicForm):
             return silvaforms.FAILURE
         service = getUtility(ISubscriptionService)
         try:
-            service.requestSubscription(self.context, data['email'])
+            service.request_subscription(self.context, data['email'])
         except errors.NotSubscribableError:
             self.status = _(u"You cannot subscribe to this content.")
             return silvaforms.FAILURE
@@ -77,7 +77,7 @@ class SubscriptionForm(silvaforms.PublicForm):
             return silvaforms.FAILURE
         service = getUtility(ISubscriptionService)
         try:
-            service.requestCancellation(self.context, data['email'])
+            service.request_cancellation(self.context, data['email'])
         except errors.NotSubscribableError:
             self.status = _(u"You cannot subscribe to this content.")
             return silvaforms.FAILURE
