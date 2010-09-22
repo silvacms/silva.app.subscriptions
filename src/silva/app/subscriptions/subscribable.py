@@ -38,7 +38,7 @@ class Subscribable(grok.Adapter):
     Silva objects and encapsulates the necessary API for
     handling subscriptions.
     """
-    grok.context(interfaces.ISilvaObject)
+    grok.context(interfaces.IContent)
     grok.implements(interfaces.ISubscribable)
     grok.provides(interfaces.ISubscribable)
 
@@ -166,6 +166,10 @@ class Subscribable(grok.Adapter):
 
     isValidSubscription = _validate
     isValidCancellation = _validate
+
+
+class SubscribableContainer(Subscribable):
+    grok.context(interfaces.IContainer)
 
 
 class SubscribableRoot(Subscribable):
