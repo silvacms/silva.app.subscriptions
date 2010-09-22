@@ -30,9 +30,10 @@ def generate_token(*args):
 class Subscription(object):
     grok.implements(ISubscription)
 
-    def __init__(self, email, content):
+    def __init__(self, email, manager):
         self.email = email
-        self.content = content
+        self.content = manager.context
+        self.manager = manager
 
 
 class Subscribable(grok.Adapter):
@@ -90,43 +91,44 @@ class Subscribable(grok.Adapter):
 
     # ACCESSORS
 
-    def getSubscriptions(self):
-        return self._getSubscriptions().values()
-
-    def _getSubscriptions(self):
-        if self.context.__subscribability__ == NOT_SUBSCRIBABLE:
-            return {}
+    @property
+    def subscriptions(self):
         subscriptions = {}
-        subscribables = self._buildSubscribablesList()
-        for subscribable in subscribables:
-            for emailaddress in subscribable.locally_subscribed_emails:
-                if not subscriptions.has_key(emailaddress):
-                    subscriptions[emailaddress] = Subscription(
-                        emailaddress, self.context)
+        for parent in self._get_subscribable_parents():
+            for email in parent.locally_subscribed_emails:
+                if email not in subscriptions:
+                    subscriptions[email] = Subscription(email, parent)
         return subscriptions
 
-    def _buildSubscribablesList(self, subscribables=None, marker=0):
+    def _get_subscribable_parents(self, subscribables=None, last_explicit=0):
+        # The purpose of last_explicit is to prevent to collect
+        # subscribables where the non-subscribabiliy is acquired.
         if subscribables is None:
             subscribables = []
         if self.context.__subscribability__ == NOT_SUBSCRIBABLE:
             # Empty list from the point without explicit
             # subscribability onwards.
-            del subscribables[marker:]
+            del subscribables[last_explicit:]
             return subscribables
         subscribables.append(self)
         if self.context.__subscribability__ == SUBSCRIBABLE:
-            # Keep a marker for the object with explicit subscribability set.
-            marker = len(subscribables)
+            # Keep a last_explicit for the object with explicit
+            # subscribability set.
+            last_explicit = len(subscribables)
         parent = ISubscriptionManager(aq_parent(self.context))
-        return parent._buildSubscribablesList(subscribables, marker)
+        return parent._get_subscribable_parents(subscribables, last_explicit)
+
+    def get_subscriptions(self):
+        return self.subscriptions.values()
+
+    def get_subscription(self, email):
+        try:
+            return self.subscriptions[email]
+        except KeyError:
+            return None
 
     def is_subscribed(self, email):
-        subscriptions = self.context.__subscriptions__
-        return email in subscriptions
-
-    def getSubscription(self, email):
-        subscriptions = self._getSubscriptions()
-        return subscriptions.get(email, None)
+        return email in self.subscriptions
 
     # MODIFIERS
 
@@ -139,35 +141,34 @@ class Subscribable(grok.Adapter):
         if subscriptions.has_key(emailaddress):
             del subscriptions[emailaddress]
 
-    def generateConfirmationToken(self, email):
+    # Manager local subscription/unscription token
+
+    def generate_token(self, email):
         tokens = self.context.__pending_subscription_tokens__
         timestamp = '%f' % time.time()
         token = generate_token(email, timestamp)
         tokens[email] = (timestamp, token)
         return token
 
-    def _validate(self, email, token):
+    def validate_token(self, email, token):
         # The current implementation will keep items in the
         # pending list indefinitly if _validate is not called (end user
         # doesn't follow up on confirmantion email), or _validate is called,
         # but the supplied token is not valid.
         tokens = self.context.__pending_subscription_tokens__
-        timestamp, validation_token = tokens.get(email, (None, None))
-        if timestamp is None or validation_token is None:
+        request_timestamp, expected_token = tokens.get(email, (None, None))
+        if request_timestamp is None or expected_token is None:
             return False
         now = datetime.datetime.now()
-        then = datetime.datetime.fromtimestamp(timestamp)
+        then = datetime.datetime.fromtimestamp(float(request_timestamp))
         delta = now - then
         if delta.days > TIMEOUTINDAYS:
             del tokens[email]
             return False
-        if token == validation_token:
+        if token == expected_token:
             del tokens[email]
             return True
         return False
-
-    isValidSubscription = _validate
-    isValidCancellation = _validate
 
 
 class SubscribableContainer(Subscribable):
@@ -184,14 +185,15 @@ class SubscribableRoot(Subscribable):
             context.__subscribability__ = NOT_SUBSCRIBABLE
         super(SubscribableRoot, self).__init__(context)
 
-    def _buildSubscribablesList(self, subscribables=None, marker=0):
-        # Overrides Subscribable._buildSubscribablesList to stop recursion.
+    def _get_subscribable_parents(self, subscribables=None, last_explicit=0):
+        # The purpose of last_explicit is to prevent to collect subscribables
+        # where the non-subscribabiliy is acquired.
         if subscribables is None:
             subscribables = []
         if self.context.__subscribability__ == NOT_SUBSCRIBABLE:
             # Empty list from the point without explicit
             # subscribability onwards.
-            del subscribables[marker:]
+            del subscribables[last_explicit:]
             return subscribables
         subscribables.append(self)
         return subscribables

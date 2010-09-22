@@ -4,6 +4,7 @@
 
 # Python
 import urllib
+import logging
 
 # Zope
 from AccessControl import ClassSecurityInfo
@@ -31,6 +32,8 @@ from z3c.schema.email import isValidMailAddress
 from zeam.form import silva as silvaforms
 from zope.component import queryUtility
 from zope.lifecycleevent.interfaces import IObjectCreatedEvent
+
+logger = logging.getLogger('silva.app.subscriptions')
 
 
 class SubscriptionService(Folder.Folder, SilvaService):
@@ -70,7 +73,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
     # Called from subscription UI
 
-    security.declareProtected(SilvaPermissions.View, 'requestSubscription')
+    security.declareProtected(SilvaPermissions.View, 'request_subscription')
     def request_subscription(self, content, email):
         # Send out request for subscription
         # NOTE: no doc string, so, not *publishable* TTW
@@ -83,9 +86,9 @@ class SubscriptionService(Folder.Folder, SilvaService):
         if not isValidMailAddress(email):
             raise errors.InvalidEmailaddressError()
         # generate confirmation token using adapter
-        token = adapted.generateConfirmationToken(email)
+        token = adapted.generate_token(email)
         # check if not yet subscribed
-        subscription = adapted.getSubscription(email)
+        subscription = adapted.get_subscription(email)
         if subscription is not None:
             # send an email informing about this situation
             self._sendSuperfluousSubscriptionRequestEmail(
@@ -93,33 +96,33 @@ class SubscriptionService(Folder.Folder, SilvaService):
                 'confirm_subscription', subscription.content)
             raise errors.AlreadySubscribedError()
         # send confirmation email to emailaddress
-        self._sendConfirmationEmail(
-            content, email, token,
+        self._send_confirmation(
+            content, content, email, token,
             'subscription_confirmation_template', 'confirm_subscription')
 
-    security.declareProtected(SilvaPermissions.View, 'requestCancellation')
-    def request_cancellation(self, content, emailaddress):
+    security.declareProtected(SilvaPermissions.View, 'request_cancellation')
+    def request_cancellation(self, content, email):
         # Send out request for cancellation of the subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        adapted = ISubscriptionManager(content, None)
-        # see if content is subscribable
-        if adapted is None:
+        manager = ISubscriptionManager(content, None)
+        if manager is None:
             raise errors.NotSubscribableError()
         # validate address
-        if not isValidMailAddress(emailaddress):
+        if not isValidMailAddress(email):
             raise errors.InvalidEmailaddressError()
         # check if indeed subscribed
-        if not adapted.is_subscribed(emailaddress):
+        subscription = manager.get_subscription(email)
+        if subscription is None:
             # send an email informing about this situation
             self._sendSuperfluousCancellationRequestEmail(
-                content, emailaddress, 'not_subscribed_template')
+                content, email, 'not_subscribed_template')
             raise errors.NotSubscribedError()
         # generate confirmation token using adapter
-        token = adapted.generateConfirmationToken(emailaddress)
+        token = subscription.manager.generate_token(email)
         # send confirmation email to emailaddress
-        self._sendConfirmationEmail(
-            content, emailaddress, token,
+        self._send_confirmation(
+            content, subscription.content, email, token,
             'cancellation_confirmation_template', 'confirm_cancellation')
 
     # Called from subscription confirmation UI
@@ -131,28 +134,28 @@ class SubscriptionService(Folder.Folder, SilvaService):
         #
         context = get_content_from_id(ref)
         assert context is not None, u'Invalid content'
-        subscr = ISubscriptionManager(context, None)
-        if subscr is None:
+        manager = ISubscriptionManager(context, None)
+        if manager is None:
             raise errors.NotSubscribableError()
         emailaddress = urllib.unquote(emailaddress)
-        if not subscr.isValidSubscription(emailaddress, token):
+        if not manager.validate_token(emailaddress, token):
             raise errors.SubscriptionError()
-        subscr.subscribe(emailaddress)
+        manager.subscribe(emailaddress)
 
     security.declareProtected(SilvaPermissions.View, 'unsubscribe')
-    def unsubscribe(self, ref, emailaddress, token):
+    def unsubscribe(self, ref, email, token):
         # Check and confirm cancellation
         # NOTE: no doc string, so, not *publishable* TTW
         #
         context = get_content_from_id(ref)
         assert context is not None, u'Invalid content'
-        subscr = ISubscriptionManager(context, None)
-        if subscr is None:
+        manager = ISubscriptionManager(context, None)
+        if manager is None:
             raise errors.CancellationError()
-        emailaddress = urllib.unquote(emailaddress)
-        if not subscr.isValidCancellation(emailaddress, token):
+        email = urllib.unquote(email)
+        if not manager.validate_token(email, token):
             raise errors.CancellationError()
-        subscr.unsubscribe(emailaddress)
+        manager.unsubscribe(email)
 
     # Helpers
 
@@ -165,25 +168,28 @@ class SubscriptionService(Folder.Folder, SilvaService):
         return value
 
     security.declarePrivate('sendNotificationEmail')
-    def sendNotificationEmail(
-        self, content, templateid='publication_event_template'):
+    def send_notification(
+        self, content, template_id='publication_event_template'):
         if not self.is_subscriptions_enabled():
+            return
+        if not template_id in self.objectIds():
+            logger.error("Missing template %s for notification on %s." % (
+                    template_id, repr(content)))
             return
         data = {}
         data['contenturl'] = content.absolute_url()
         data['contenttitle'] = content.get_title().encode('utf-8')
         data['subject'] = self._metadata(content, 'silva-extra', 'subject')
         data['description'] = self._metadata(content, 'silva-extra', 'content_description')
-        adapted = ISubscriptionManager(content)
-        template = str(self[templateid])
-        subscriptions = adapted.getSubscriptions()
-        for subscription in subscriptions:
+        template = str(self[template_id])
+        manager = ISubscriptionManager(content)
+        for subscription in manager.get_subscriptions():
             content_url = subscription.content.absolute_url()
             data['subscribedcontenturl'] =  content_url
             data['serviceurlforsubscribedcontent'] = \
                 content_url + '/subscriptions.html'
             data['toaddress'] = subscription.email
-            self._sendEmail(template, data)
+            self._send_email(template, data)
 
     def _get_default_data(self, content, email):
         data = {}
@@ -196,7 +202,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
     def _sendSuperfluousCancellationRequestEmail(self, content, email, template_id):
         template = str(self[template_id])
         data = self._get_default_data(content, email)
-        self._sendEmail(template, data)
+        self._send_email(template, data)
 
     def _sendSuperfluousSubscriptionRequestEmail(
         self, content, email, token, template_id, action, subscribed_content):
@@ -210,20 +216,20 @@ class SubscriptionService(Folder.Folder, SilvaService):
         subscribed_url = subscribed_content.absolute_url()
         data['subscribedcontenturl'] = subscribed_url
         data['serviceurlforsubscribedcontent'] = subscribed_url + '/subscriptions.html'
-        self._sendEmail(template, data)
+        self._send_email(template, data)
 
-    def _sendConfirmationEmail(
-        self, content, email, token, template_id, action):
+    def _send_confirmation(
+        self, content, subscribed_content, email, token, template_id, action):
         template = str(self[template_id])
         data = self._get_default_data(content, email)
         data['confirmationurl'] = '%s/subscriptions.html/@@%s?%s' % (
-            content.absolute_url(), action, urllib.urlencode((
-                ('content', get_content_id(content)),
-                ('email', urllib.quote(email)),
-                ('token', token)),))
-        self._sendEmail(template, data)
+            subscribed_content.absolute_url(), action, urllib.urlencode((
+                    ('content', get_content_id(subscribed_content)),
+                    ('email', urllib.quote(email)),
+                    ('token', token)),))
+        self._send_email(template, data)
 
-    def _sendEmail(self, template, data):
+    def _send_email(self, template, data):
         message = template % data
         sendmail(self, message)
 
@@ -351,7 +357,7 @@ def content_published(content, event):
     service = queryUtility(ISubscriptionService)
     if service is not None:
         # first send notification for content
-        service.sendNotificationEmail(content)
+        service.send_notification(content)
         # now send email for potential haunting ghosts
         for haunting in IHaunted(content).getHauting():
-            service.sendNotificationEmail(haunting)
+            service.send_notification(haunting)

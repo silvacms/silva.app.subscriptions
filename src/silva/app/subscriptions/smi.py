@@ -79,7 +79,7 @@ class SubscriptionPortlet(silvaviews.Viewlet):
     def update(self):
         settings = ISubscriptionManager(self.context)
         self.is_enabled = settings.is_subscribable()
-        self.all_subscribers = len(settings.getSubscriptions())
+        self.all_subscribers = len(settings.subscriptions)
         self.locally_subscribers = len(settings.locally_subscribed_emails)
         self.above_subscribers = self.all_subscribers - self.locally_subscribers
 

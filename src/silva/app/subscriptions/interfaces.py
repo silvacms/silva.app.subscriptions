@@ -17,6 +17,7 @@ class ISubscription(Interface):
     """
     email = Attribute(u"Subscribed email")
     content = Attribute(u"Content from which this email is subscribed")
+    manager = Attribute(u"SubscriptionManager who is responsible")
 
 
 class ISubscriptionManager(Interface):
@@ -26,15 +27,13 @@ class ISubscriptionManager(Interface):
         u"Mode indicating if the subscription is on")
     locally_subscribed_emails = Attribute(
         u"Set of locally subscribed email to this content")
+    subscriptions = Attribute(
+        u"Dictionnay of subscribed emails to contents "
+        u"for all subscriptions for this content and its parents")
 
     def is_subscribable():
         """Return True if the adapted object is actually subscribable,
         False otherwise.
-        """
-
-    def is_subscribed(email):
-        """Return True is the specified emailaddress is already subscribed
-        for the adapted object. False otherwise.
         """
 
     def subscribe(email):
@@ -45,23 +44,17 @@ class ISubscriptionManager(Interface):
         """Unsubscribe emailaddress for the content.
         """
 
-    # To be reviewed
-    def getSubscriptions():
-        """Return a list of ISubscription objects
+    def is_subscribed(email):
+        """Return true if the given email is suscribed at this level.
         """
 
-    def isValidSubscription(emailaddress, token):
-        """Return True is the specified emailaddress and token depict a
-        valid subscription request. False otherwise.
-        """
-
-    def isValidCancellation(emailaddress, token):
-        """Return True is the specified emailaddress and token depict a
-        valid cancellation request. False otherwise.
-        """
-
-    def generateConfirmationToken(emailaddress):
+    def generate_token(email):
         """Generate a token used for the subscription/cancellation cycle.
+        """
+
+    def validate_token(email, token):
+        """Return True is the specified email and token validate a
+        previously call to generate_token.
         """
 
 
@@ -90,8 +83,7 @@ class ISubscriptionService(ISilvaService, ISilvaLocalService):
         the given email.
         """
 
-
-    def sendNotificationEmail(content, template_id):
+    def send_notification(content, template_id):
         """Render the given template using content information and
         send the result to the subscribed people.
         """
