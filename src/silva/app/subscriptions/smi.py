@@ -4,10 +4,11 @@
 # $Id$
 
 from five import grok
-from silva.app.subscriptions.interfaces import ISubscriptionService
+from silva.app.subscriptions.interfaces import (
+    ISubscriptionService, ISubscriptionManager)
 from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
-from silva.core.interfaces import ISubscribable, ISilvaObject
+from silva.core.interfaces import ISilvaObject
 from silva.core.smi import smi as silvasmi
 from silva.core.smi.interfaces import IPropertiesTab
 from silva.core.views import views as silvaviews
@@ -23,7 +24,7 @@ from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
 @grok.provider(IContextSourceBinder)
 def subscribability_options(context):
     options = []
-    settings = ISubscribable(context)
+    settings = ISubscriptionManager(context)
     for value, title in [
         (ACQUIRE_SUBSCRIBABILITY, _(u"Acquire settings from above")),
         (NOT_SUBSCRIBABLE, _(u"Disable subscriptions")),
@@ -64,7 +65,7 @@ class SubscriptionForm(silvaforms.SMIForm):
     fields = silvaforms.Fields(ISubscribableSettings)
     fields['subscribability'].mode = 'radio'
     ignoreContent = False
-    dataManager = silvaforms.makeAdaptiveDataManager(ISubscribable)
+    dataManager = silvaforms.makeAdaptiveDataManager(ISubscriptionManager)
     actions = silvaforms.Actions(
         silvaforms.CancelAction(),
         silvaforms.EditAction())
@@ -76,7 +77,7 @@ class SubscriptionPortlet(silvaviews.Viewlet):
     grok.view(SubscriptionForm)
 
     def update(self):
-        settings = ISubscribable(self.context)
+        settings = ISubscriptionManager(self.context)
         self.is_enabled = settings.is_subscribable()
         self.all_subscribers = len(settings.getSubscriptions())
         self.locally_subscribers = len(settings.locally_subscribed_emails)
@@ -94,7 +95,7 @@ class SubscriptionButton(silvasmi.SMIMiddleGroundButton):
     accesskey = "u"
 
     def available(self):
-        if ISubscribable(self.context, None) is None:
+        if ISubscriptionManager(self.context, None) is None:
             return False
         service = queryUtility(ISubscriptionService)
         return service is not None and service.is_subscriptions_enabled()

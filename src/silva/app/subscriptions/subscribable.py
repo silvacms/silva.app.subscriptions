@@ -13,6 +13,8 @@ from BTrees.OOBTree import OOBTree
 from five import grok
 from silva.core import interfaces
 from silva.app.subscriptions.interfaces import (
+    ISubscriptionManager, ISubscription)
+from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
 
 
@@ -26,7 +28,7 @@ def generate_token(*args):
 
 
 class Subscription(object):
-    grok.implements(interfaces.ISubscription)
+    grok.implements(ISubscription)
 
     def __init__(self, email, content):
         self.email = email
@@ -39,8 +41,8 @@ class Subscribable(grok.Adapter):
     handling subscriptions.
     """
     grok.context(interfaces.IContent)
-    grok.implements(interfaces.ISubscribable)
-    grok.provides(interfaces.ISubscribable)
+    grok.implements(ISubscriptionManager)
+    grok.provides(ISubscriptionManager)
 
     subscribability_possibilities = [
         NOT_SUBSCRIBABLE, SUBSCRIBABLE, ACQUIRE_SUBSCRIBABILITY]
@@ -62,7 +64,7 @@ class Subscribable(grok.Adapter):
             return False
         if subscribability == SUBSCRIBABLE:
             return True
-        parent = interfaces.ISubscribable(aq_parent(self.context))
+        parent = ISubscriptionManager(aq_parent(self.context))
         return parent.is_subscribable()
 
     @apply
@@ -115,12 +117,12 @@ class Subscribable(grok.Adapter):
         if self.context.__subscribability__ == SUBSCRIBABLE:
             # Keep a marker for the object with explicit subscribability set.
             marker = len(subscribables)
-        parent = interfaces.ISubscribable(aq_parent(self.context))
+        parent = ISubscriptionManager(aq_parent(self.context))
         return parent._buildSubscribablesList(subscribables, marker)
 
-    def isSubscribed(self, email):
+    def is_subscribed(self, email):
         subscriptions = self.context.__subscriptions__
-        return bool(subscriptions.has_key(email))
+        return email in subscriptions
 
     def getSubscription(self, email):
         subscriptions = self._getSubscriptions()

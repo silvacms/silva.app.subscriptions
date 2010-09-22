@@ -19,9 +19,10 @@ from Products.Silva.install import add_helper, fileobject_add_helper
 from five import grok
 from zope import interface, schema
 from silva.app.subscriptions import errors
-from silva.app.subscriptions.interfaces import ISubscriptionService
+from silva.app.subscriptions.interfaces import (
+    ISubscriptionService, ISubscriptionManager)
 from silva.core import conf as silvaconf
-from silva.core.interfaces import IHaunted, IVersionedContent, ISubscribable
+from silva.core.interfaces import IHaunted, IVersionedContent
 from silva.core.interfaces.events import IContentPublishedEvent
 from silva.core.references.reference import get_content_id, get_content_from_id
 from silva.core.services.base import SilvaService
@@ -78,7 +79,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Send out request for subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        adapted = ISubscribable(content, None)
+        adapted = ISubscriptionManager(content, None)
         # see if content is subscribable
         if adapted is None or not adapted.is_subscribable():
             raise errors.NotSubscribableError()
@@ -105,7 +106,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Send out request for cancellation of the subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        adapted = ISubscribable(content, None)
+        adapted = ISubscriptionManager(content, None)
         # see if content is subscribable
         if adapted is None:
             raise errors.NotSubscribableError()
@@ -134,9 +135,9 @@ class SubscriptionService(Folder.Folder, SilvaService):
         #
         context = get_content_from_id(ref)
         assert context is not None, u'Invalid content'
-        subscr = ISubscribable(context, None)
+        subscr = ISubscriptionManager(context, None)
         if subscr is None:
-            raise errors.SubscriptionError()
+            raise errors.NotSubscribableError()
         emailaddress = urllib.unquote(emailaddress)
         if not subscr.isValidSubscription(emailaddress, token):
             raise errors.SubscriptionError()
@@ -149,7 +150,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         #
         context = get_content_from_id(ref)
         assert context is not None, u'Invalid content'
-        subscr = ISubscribable(context, None)
+        subscr = ISubscriptionManager(context, None)
         if subscr is None:
             raise errors.CancellationError()
         emailaddress = urllib.unquote(emailaddress)
@@ -177,7 +178,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         data['contenttitle'] = content.get_title().encode('utf-8')
         data['subject'] = self._metadata(content, 'silva-extra', 'subject')
         data['description'] = self._metadata(content, 'silva-extra', 'content_description')
-        adapted = ISubscribable(content)
+        adapted = ISubscriptionManager(content)
         template = str(self[templateid])
         subscriptions = adapted.getSubscriptions()
         for subscription in subscriptions:
