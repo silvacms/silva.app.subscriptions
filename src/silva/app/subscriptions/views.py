@@ -199,7 +199,7 @@ class SubscriptionContentProvider(silvaforms.PublicContentProviderForm):
     grok.context(ISilvaObject)
     grok.name('subscriptions')
 
-    label = _(u'subscribe / unsubscribe')
+    label = _(u'Subscribe / Unsubscribe')
     description =_(
         u'Fill in your email address if you want to receive an a '
         u'email notifications whenever a new version of this page '
