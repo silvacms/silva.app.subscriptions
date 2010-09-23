@@ -67,9 +67,16 @@ class SubscriptionService(Folder.Folder, SilvaService):
     def disable_subscriptions(self):
         self._enabled = False
 
-    security.declareProtected(SilvaPermissions.View, 'is_subscriptions_enabled')
-    def is_subscriptions_enabled(self):
-        return self._enabled
+    security.declareProtected(SilvaPermissions.View, 'are_subscriptions_enabled')
+    def are_subscriptions_enabled(self, context=None):
+        if not self._enabled:
+            return False
+        if context is not None:
+            manager = ISubscriptionManager(context, None)
+            if manager is None:
+                return False
+            return manager.is_subscribable()
+        return True
 
     # Called from subscription UI
 
@@ -170,7 +177,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
     security.declarePrivate('sendNotificationEmail')
     def send_notification(
         self, content, template_id='publication_event_template'):
-        if not self.is_subscriptions_enabled():
+        if not self.are_subscriptions_enabled():
             return
         if not template_id in self.objectIds():
             logger.error("Missing template %s for notification on %s." % (
@@ -263,7 +270,7 @@ class SubscriptionServiceActivateForm(silvaforms.ZMISubForm):
     description = _(u"Activate sending emails notifications")
 
     def available(self):
-        return not self.context.is_subscriptions_enabled()
+        return not self.context.are_subscriptions_enabled()
 
     @silvaforms.action(_(u'Activate'))
     def action_activate(self):
@@ -293,7 +300,7 @@ class SubscriptionServiceDisableForm(silvaforms.ZMISubForm):
     description = _(u"Disable sending emails notifications")
 
     def available(self):
-        return self.context.is_subscriptions_enabled()
+        return self.context.are_subscriptions_enabled()
 
     @silvaforms.action(_(u'Disable'))
     def action_disable(self):

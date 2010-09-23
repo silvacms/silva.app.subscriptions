@@ -98,4 +98,4 @@ class SubscriptionButton(silvasmi.SMIMiddleGroundButton):
         if ISubscriptionManager(self.context, None) is None:
             return False
         service = queryUtility(ISubscriptionService)
-        return service is not None and service.is_subscriptions_enabled()
+        return service is not None and service.are_subscriptions_enabled()

@@ -68,7 +68,7 @@ class ISubscriptionService(ISilvaService, ISilvaLocalService):
         """Disable susbcriptions in that part of the site.
         """
 
-    def is_subscriptions_enabled():
+    def are_subscriptions_enabled():
         """Return true if subscriptions are enabled in that part of
         the site.
         """
