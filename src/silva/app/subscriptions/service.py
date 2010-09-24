@@ -177,7 +177,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
     def _get_default_data(self, content, email=None):
         data = {}
-        data['from'] = self._fromaddress
+        data['from'] = self._from
         data['to'] = email
         data['metadata'] = IMetadata(content)
         data['sitename'] = self._sitename
