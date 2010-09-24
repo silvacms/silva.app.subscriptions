@@ -8,6 +8,7 @@ import logging
 
 # Zope
 from AccessControl import ClassSecurityInfo
+from Acquisition import aq_base
 from App.class_init import InitializeClass
 from OFS import Folder
 
@@ -15,7 +16,7 @@ from OFS import Folder
 from Products.Silva import SilvaPermissions
 from Products.Silva import MAILDROPHOST_AVAILABLE, MAILHOST_ID
 from Products.Silva.mail import sendmail
-from Products.Silva.install import add_helper, fileobject_add_helper
+from Products.Silva.install import add_helper, pt_add_helper
 
 from five import grok
 from zope import interface, schema
@@ -23,8 +24,9 @@ from silva.app.subscriptions import errors
 from silva.app.subscriptions.interfaces import (
     ISubscriptionService, ISubscriptionManager)
 from silva.core import conf as silvaconf
-from silva.core.interfaces import IHaunted, IVersionedContent
+from silva.core.interfaces import IHaunted, IVersion
 from silva.core.interfaces.events import IContentPublishedEvent
+from silva.core.layout.interfaces import IMetadata
 from silva.core.references.reference import get_content_id, get_content_from_id
 from silva.core.services.base import SilvaService
 from silva.translations import translate as _
@@ -53,7 +55,8 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
     # subscriptions are disabled by default
     _enabled = False
-    _fromaddress = 'Silva Subscription Service <subscription-service@example.com>'
+    _from = 'Silva Subscription Service <subscription-service@example.com>'
+    _sitename = 'Silva'
 
     # ZMI methods
 
@@ -98,9 +101,9 @@ class SubscriptionService(Folder.Folder, SilvaService):
         subscription = adapted.get_subscription(email)
         if subscription is not None:
             # send an email informing about this situation
-            self._sendSuperfluousSubscriptionRequestEmail(
-                content, email, token, 'already_subscribed_template',
-                'confirm_subscription', subscription.content)
+            self._send_confirmation(
+                content, subscription.content, email, token,
+                'already_subscribed_template', 'confirm_subscription')
             raise errors.AlreadySubscribedError()
         # send confirmation email to emailaddress
         self._send_confirmation(
@@ -122,8 +125,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         subscription = manager.get_subscription(email)
         if subscription is None:
             # send an email informing about this situation
-            self._sendSuperfluousCancellationRequestEmail(
-                content, email, 'not_subscribed_template')
+            self._send_information(content, email, 'not_subscribed_template')
             raise errors.NotSubscribedError()
         # generate confirmation token using adapter
         token = subscription.manager.generate_token(email)
@@ -166,78 +168,57 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
     # Helpers
 
-    def _metadata(self, content, setname, fieldname):
-        metadata_service = content.service_metadata
-        version = content.get_viewable()
-        value = metadata_service.getMetadataValue(version, setname, fieldname)
-        if type(value) == type(u''):
-            value = value.encode('utf-8')
-        return value
+    def _get_template(self, content, template_id):
+        if not template_id in self.objectIds():
+            logger.error("Missing template %s for notification on %s." % (
+                    template_id, repr(content)))
+            raise KeyError(template_id)
+        return aq_base(self[template_id]).__of__(content)
+
+    def _get_default_data(self, content, email=None):
+        data = {}
+        data['from'] = self._fromaddress
+        data['to'] = email
+        data['metadata'] = IMetadata(content)
+        data['sitename'] = self._sitename
+        return data
 
     security.declarePrivate('sendNotificationEmail')
     def send_notification(
         self, content, template_id='publication_event_template'):
         if not self.are_subscriptions_enabled():
             return
-        if not template_id in self.objectIds():
-            logger.error("Missing template %s for notification on %s." % (
-                    template_id, repr(content)))
-            return
-        data = {}
-        data['contenturl'] = content.absolute_url()
-        data['contenttitle'] = content.get_title().encode('utf-8')
-        data['subject'] = self._metadata(content, 'silva-extra', 'subject')
-        data['description'] = self._metadata(content, 'silva-extra', 'content_description')
-        template = str(self[template_id])
+        template = self._get_template(content, template_id)
+        data = self._get_default_data(content)
         manager = ISubscriptionManager(content)
         for subscription in manager.get_subscriptions():
             content_url = subscription.content.absolute_url()
-            data['subscribedcontenturl'] =  content_url
-            data['serviceurlforsubscribedcontent'] = \
-                content_url + '/subscriptions.html'
-            data['toaddress'] = subscription.email
+            data['subscribed_content'] = subscription.content
+            data['service_url'] = content_url + '/subscriptions.html'
+            data['to'] = subscription.email
             self._send_email(template, data)
 
-    def _get_default_data(self, content, email):
-        data = {}
-        data['fromaddress'] = self._fromaddress
-        data['toaddress'] = email
-        data['contenturl'] = content.absolute_url()
-        data['contenttitle'] = content.get_title().encode('utf-8')
-        return data
-
-    def _sendSuperfluousCancellationRequestEmail(self, content, email, template_id):
-        template = str(self[template_id])
+    def _send_information(self, content, email, template_id):
+        template = self._get_template(content, template_id)
         data = self._get_default_data(content, email)
-        self._send_email(template, data)
-
-    def _sendSuperfluousSubscriptionRequestEmail(
-        self, content, email, token, template_id, action, subscribed_content):
-        template = str(self[template_id])
-        data = self._get_default_data(content, email)
-        data['confirmationurl'] = '%s/subscriptions.html/@@%s?%s' % (
-            content.absolute_url(), action, urllib.urlencode((
-                ('content', get_content_id(content)),
-                ('email', urllib.quote(email)),
-                ('token', token)),))
-        subscribed_url = subscribed_content.absolute_url()
-        data['subscribedcontenturl'] = subscribed_url
-        data['serviceurlforsubscribedcontent'] = subscribed_url + '/subscriptions.html'
         self._send_email(template, data)
 
     def _send_confirmation(
         self, content, subscribed_content, email, token, template_id, action):
-        template = str(self[template_id])
+        template = self._get_template(content, template_id)
         data = self._get_default_data(content, email)
-        data['confirmationurl'] = '%s/subscriptions.html/@@%s?%s' % (
+        data['confirmation_url'] = '%s/subscriptions.html/@@%s?%s' % (
             subscribed_content.absolute_url(), action, urllib.urlencode((
                     ('content', get_content_id(subscribed_content)),
                     ('email', urllib.quote(email)),
                     ('token', token)),))
+        data['subscribed_content'] = subscribed_content
+        data['service_url'] = subscribed_content.absolute_url() + \
+            '/subscriptions.html'
         self._send_email(template, data)
 
     def _send_email(self, template, data):
-        message = template % data
+        message = template(**data)
         sendmail(self, message)
 
 
@@ -245,9 +226,13 @@ InitializeClass(SubscriptionService)
 
 
 class ISubscriptionSettings(interface.Interface):
-    _fromaddress = schema.TextLine(
+    _from = schema.TextLine(
         title=_(u"From address"),
         description=_(u"Address used to send notification emails"),
+        required=True)
+    _sitename = schema.TextLine(
+        title=_(u"Site name"),
+        description=_(u"Site name to report in the notification"),
         required=True)
 
 
@@ -347,24 +332,25 @@ class SubscriptionServiceInstallMaildropHostForm(silvaforms.ZMISubForm):
 def service_created(service, event):
     """Add all default templates to the service.
     """
+    service._sitename = service.get_root().get_title_or_id()
     for identifier in [
-        'subscription_confirmation_template',
-        'already_subscribed_template',
-        'cancellation_confirmation_template',
-        'not_subscribed_template',
-        'publication_event_template']:
-        add_helper(
-            service, identifier, globals(), fileobject_add_helper, True)
+        'subscription_confirmation_template.pt',
+        'already_subscribed_template.pt',
+        'cancellation_confirmation_template.pt',
+        'not_subscribed_template.pt',
+        'publication_event_template.pt']:
+        add_helper(service, identifier, globals(), pt_add_helper, True)
 
 
-@grok.subscribe(IVersionedContent, IContentPublishedEvent)
-def content_published(content, event):
+@grok.subscribe(IVersion, IContentPublishedEvent)
+def version_published(version, event):
     """Content have been published. Send notifications.
     """
     service = queryUtility(ISubscriptionService)
     if service is not None:
+        content = version.get_content()
         # first send notification for content
         service.send_notification(content)
         # now send email for potential haunting ghosts
-        for haunting in IHaunted(content).getHauting():
+        for haunting in IHaunted(content).getHaunting():
             service.send_notification(haunting)
