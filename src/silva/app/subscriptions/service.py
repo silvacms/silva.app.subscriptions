@@ -3,6 +3,8 @@
 # $Id$
 
 # Python
+from datetime import datetime
+import time
 import urllib
 import logging
 
@@ -29,10 +31,11 @@ from silva.core.interfaces.events import IContentPublishedEvent
 from silva.core.layout.interfaces import IMetadata
 from silva.core.references.reference import get_content_id, get_content_from_id
 from silva.core.services.base import SilvaService
+from silva.core.services.interfaces import ISecretService
 from silva.translations import translate as _
 from z3c.schema.email import isValidMailAddress
 from zeam.form import silva as silvaforms
-from zope.component import queryUtility
+from zope.component import queryUtility, getUtility
 from zope.lifecycleevent.interfaces import IObjectCreatedEvent
 
 logger = logging.getLogger('silva.app.subscriptions')
@@ -57,6 +60,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
     _enabled = False
     _from = 'Silva Subscription Service <subscription-service@example.com>'
     _sitename = 'Silva'
+    _maximum_delay = 3
 
     # ZMI methods
 
@@ -88,26 +92,28 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Send out request for subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        adapted = ISubscriptionManager(content, None)
+
+        manager = ISubscriptionManager(content, None)
         # see if content is subscribable
-        if adapted is None or not adapted.is_subscribable():
+        if manager is None or not manager.is_subscribable():
             raise errors.NotSubscribableError()
+
         # validate address
         if not isValidMailAddress(email):
             raise errors.InvalidEmailaddressError()
-        # generate confirmation token using adapter
-        token = adapted.generate_token(email)
+
         # check if not yet subscribed
-        subscription = adapted.get_subscription(email)
+        subscription = manager.get_subscription(email)
         if subscription is not None:
             # send an email informing about this situation
             self._send_confirmation(
-                content, subscription.content, email, token,
+                content, subscription.content, email,
                 'already_subscribed_template', 'confirm_subscription')
             raise errors.AlreadySubscribedError()
+
         # send confirmation email to emailaddress
         self._send_confirmation(
-            content, content, email, token,
+            content, content, email,
             'subscription_confirmation_template', 'confirm_subscription')
 
     security.declareProtected(SilvaPermissions.View, 'request_cancellation')
@@ -121,67 +127,51 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # validate address
         if not isValidMailAddress(email):
             raise errors.InvalidEmailaddressError()
+
         # check if indeed subscribed
         subscription = manager.get_subscription(email)
         if subscription is None:
             # send an email informing about this situation
             self._send_information(content, email, 'not_subscribed_template')
             raise errors.NotSubscribedError()
-        # generate confirmation token using adapter
-        token = subscription.manager.generate_token(email)
-        # send confirmation email to emailaddress
+
         self._send_confirmation(
-            content, subscription.content, email, token,
+            content, subscription.content, email,
             'cancellation_confirmation_template', 'confirm_cancellation')
 
     # Called from subscription confirmation UI
 
     security.declareProtected(SilvaPermissions.View, 'subscribe')
-    def subscribe(self, ref, emailaddress, token):
+    def subscribe(self, content_id, email, token):
         # Check and confirm subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        context = get_content_from_id(ref)
-        assert context is not None, u'Invalid content'
-        manager = ISubscriptionManager(context, None)
+        content = get_content_from_id(content_id)
+        assert content is not None, u'Invalid content'
+        manager = ISubscriptionManager(content, None)
         if manager is None:
             raise errors.NotSubscribableError()
-        emailaddress = urllib.unquote(emailaddress)
-        if not manager.validate_token(emailaddress, token):
+        email = urllib.unquote(email)
+        if not self._validate_token(
+            content_id, email, 'confirm_subscription', token):
             raise errors.SubscriptionError()
-        manager.subscribe(emailaddress)
+        manager.subscribe(email)
 
     security.declareProtected(SilvaPermissions.View, 'unsubscribe')
-    def unsubscribe(self, ref, email, token):
+    def unsubscribe(self, content_id, email, token):
         # Check and confirm cancellation
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        context = get_content_from_id(ref)
-        assert context is not None, u'Invalid content'
-        manager = ISubscriptionManager(context, None)
+        content = get_content_from_id(content_id)
+        assert content is not None, u'Invalid content'
+        manager = ISubscriptionManager(content, None)
         if manager is None:
             raise errors.CancellationError()
         email = urllib.unquote(email)
-        if not manager.validate_token(email, token):
+        if not self._validate_token(
+            content_id, email, 'confirm_cancellation', token):
             raise errors.CancellationError()
         manager.unsubscribe(email)
-
-    # Helpers
-
-    def _get_template(self, content, template_id):
-        if not template_id in self.objectIds():
-            logger.error("Missing template %s for notification on %s." % (
-                    template_id, repr(content)))
-            raise KeyError(template_id)
-        return aq_base(self[template_id]).__of__(content)
-
-    def _get_default_data(self, content, email=None):
-        data = {}
-        data['from'] = self._from
-        data['to'] = email
-        data['metadata'] = IMetadata(content)
-        data['sitename'] = self._sitename
-        return data
 
     security.declarePrivate('sendNotificationEmail')
     def send_notification(
@@ -198,23 +188,62 @@ class SubscriptionService(Folder.Folder, SilvaService):
             data['to'] = subscription.email
             self._send_email(template, data)
 
+    def _generate_token(self, content_id, email, action):
+        secret = getUtility(ISecretService)
+        now = str(int(time.time()))
+        key = secret.digest(content_id, email, now, action)
+        return ':'.join((now, key)).encode('base64').strip()
+
+    def _validate_token(self, content_id, email, action, token):
+        try:
+            token = token.decode('base64')
+            if ':' not in token:
+                return False
+            query_date, query_key = token.split(':')
+            delay = datetime.now() - datetime.fromtimestamp(int(query_date))
+            if delay.days > self._maximum_delay:
+                return False
+            secret = getUtility(ISecretService)
+            key = secret.digest(content_id, email, query_date, action)
+            return query_key == key
+        except:
+            return False
+
+    def _get_template(self, content, template_id):
+        if not template_id in self.objectIds():
+            logger.error("Missing template %s for notification on %s." % (
+                    template_id, repr(content)))
+            raise KeyError(template_id)
+        return aq_base(self[template_id]).__of__(content)
+
+    def _get_default_data(self, content, email=None):
+        data = {}
+        data['from'] = self._from
+        data['to'] = email
+        data['metadata'] = IMetadata(content)
+        data['sitename'] = self._sitename
+        data['confirmation_delay'] = self._maximum_delay
+        return data
+
     def _send_information(self, content, email, template_id):
         template = self._get_template(content, template_id)
         data = self._get_default_data(content, email)
         self._send_email(template, data)
 
     def _send_confirmation(
-        self, content, subscribed_content, email, token, template_id, action):
+        self, content, subscribed_content, email, template_id, action):
         template = self._get_template(content, template_id)
         data = self._get_default_data(content, email)
+        subscribed_content_url = subscribed_content.absolute_url()
+        subscribed_content_id = get_content_id(subscribed_content)
+        token = self._generate_token(subscribed_content_id, email, action)
         data['confirmation_url'] = '%s/subscriptions.html/@@%s?%s' % (
-            subscribed_content.absolute_url(), action, urllib.urlencode((
-                    ('content', get_content_id(subscribed_content)),
+            subscribed_content_url, action, urllib.urlencode((
+                    ('content', subscribed_content_id),
                     ('email', urllib.quote(email)),
                     ('token', token)),))
         data['subscribed_content'] = subscribed_content
-        data['service_url'] = subscribed_content.absolute_url() + \
-            '/subscriptions.html'
+        data['service_url'] = subscribed_content_url + '/subscriptions.html'
         self._send_email(template, data)
 
     def _send_email(self, template, data):
@@ -228,11 +257,16 @@ InitializeClass(SubscriptionService)
 class ISubscriptionSettings(interface.Interface):
     _from = schema.TextLine(
         title=_(u"From address"),
-        description=_(u"Address used to send notification emails"),
+        description=_(u"Email address used to send notification emails"),
         required=True)
     _sitename = schema.TextLine(
-        title=_(u"Site name"),
-        description=_(u"Site name to report in the notification"),
+        title=_(u"Service name"),
+        description=_(u"Service name to report in notification emails"),
+        required=True)
+    _maximum_delay = schema.Int(
+        title=_(u"Maximum confirmation delay in days"),
+        description=_(u"When a confirmation email is sent, "
+                      u"it must be validated within that number of days"),
         required=True)
 
 
@@ -270,7 +304,7 @@ class SubscriptionServiceOptionForm(silvaforms.ZMISubForm):
     silvaforms.order(30)
 
     label = _(u"Configure subscriptions")
-    description = _(u"Modify generic settings")
+    description = _(u"Modify email notification settings")
     ignoreContent = False
     fields = silvaforms.Fields(ISubscriptionSettings)
     actions = silvaforms.Actions(silvaforms.EditAction())

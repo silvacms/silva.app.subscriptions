@@ -3,28 +3,16 @@
 # $Id$
 
 import itertools
-import hashlib
-import time
-import datetime
 
 from Acquisition import aq_parent
 from BTrees.OOBTree import OOBTree
 
 from five import grok
 from silva.core import interfaces
-from silva.app.subscriptions.interfaces import (
-    ISubscriptionManager, ISubscription)
+from silva.app.subscriptions.interfaces import ISubscriptionManager
+from silva.app.subscriptions.interfaces import ISubscription
 from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
-
-
-TIMEOUTINDAYS =  3
-
-def generate_token(*args):
-    hash = hashlib.md5()
-    for arg in args:
-        hash.update(str(args))
-    return hash.hexdigest()
 
 
 class Subscription(object):
@@ -141,34 +129,6 @@ class Subscribable(grok.Adapter):
         if subscriptions.has_key(emailaddress):
             del subscriptions[emailaddress]
 
-    # Manager local subscription/unscription token
-
-    def generate_token(self, email):
-        tokens = self.context.__pending_subscription_tokens__
-        timestamp = '%f' % time.time()
-        token = generate_token(email, timestamp)
-        tokens[email] = (timestamp, token)
-        return token
-
-    def validate_token(self, email, token):
-        # The current implementation will keep items in the
-        # pending list indefinitly if _validate is not called (end user
-        # doesn't follow up on confirmantion email), or _validate is called,
-        # but the supplied token is not valid.
-        tokens = self.context.__pending_subscription_tokens__
-        request_timestamp, expected_token = tokens.get(email, (None, None))
-        if request_timestamp is None or expected_token is None:
-            return False
-        now = datetime.datetime.now()
-        then = datetime.datetime.fromtimestamp(float(request_timestamp))
-        delta = now - then
-        if delta.days > TIMEOUTINDAYS:
-            del tokens[email]
-            return False
-        if token == expected_token:
-            del tokens[email]
-            return True
-        return False
 
 
 class SubscribableContainer(Subscribable):

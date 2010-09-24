@@ -48,15 +48,6 @@ class ISubscriptionManager(Interface):
         """Return true if the given email is suscribed at this level.
         """
 
-    def generate_token(email):
-        """Generate a token used for the subscription/cancellation cycle.
-        """
-
-    def validate_token(email, token):
-        """Return True is the specified email and token validate a
-        previously call to generate_token.
-        """
-
 
 class ISubscriptionService(ISilvaService, ISilvaLocalService):
 

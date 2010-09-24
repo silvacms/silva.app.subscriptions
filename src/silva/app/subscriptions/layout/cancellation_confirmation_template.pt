@@ -16,7 +16,7 @@ going to this URL (usually this URL is clickable):
 
 <tal:url tal:replace="structure options/confirmation_url" />
 
-This URL will be valid for 3 days. If you do not want to cancel the
+This URL will be valid for <tal:delay tal:replace="structure options/confirmation_delay" /> days. If you do not want to cancel the
 subscription, you can safely ignore this message.
 
 -- 

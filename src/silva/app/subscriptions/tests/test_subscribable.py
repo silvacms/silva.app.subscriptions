@@ -31,24 +31,6 @@ class DisabledSubscribableTestCase(object):
         Indexer.manage_addIndexer(self.root, 'indexer', 'Test Indexer')
         self.indexer = self.root.indexer
 
-    def test_getSubscribable(self):
-        subscr = subscribable.getSubscribable(self.root)
-        self.assert_(isinstance(subscr, subscribable.SubscribableRoot))
-        subscr = subscribable.getSubscribable(self.publication)
-        self.assert_(isinstance(subscr, subscribable.Subscribable))
-        subscr = subscribable.getSubscribable(self.folder)
-        self.assert_(isinstance(subscr, subscribable.Subscribable))
-        subscr = subscribable.getSubscribable(self.doc)
-        self.assert_(isinstance(subscr, subscribable.Subscribable))
-        subscr = subscribable.getSubscribable(self.ghost)
-        self.assert_(isinstance(subscr, subscribable.Subscribable))
-        subscr = subscribable.getSubscribable(self.link)
-        self.assert_(isinstance(subscr, subscribable.Subscribable))
-        subscr = subscribable.getSubscribable(self.image)
-        self.assertEquals(None, subscr)
-        subscr = subscribable.getSubscribable(self.indexer)
-        self.assertEquals(None, subscr)
-
     def test__buildSubscribablesList(self):
         # first make root subscribable (acquired by the contained objects)
         rootsubscr = subscribable.getSubscribable(self.root)
@@ -128,23 +110,4 @@ class DisabledSubscribableTestCase(object):
             False, subscr.isValidSubscription(addr, token + 'foobar'))
         addr = "foob@bar.baz"
         self.assertEquals(False, subscr.isValidSubscription(addr, token))
-
-    def test_isValidCancellation(self):
-        subscr = subscribable.getSubscribable(self.doc)
-        addr = "foo@bar.baz"
-        token = subscr.generateConfirmationToken(addr)
-        self.assertEquals(True, subscr.isValidCancellation(addr, token))
-        # Subsequent use of the same token is not valid
-        self.assertEquals(False, subscr.isValidCancellation(addr, token))
-        # Invalid token is not valid (duh!)
-        self.assertEquals(
-            False, subscr.isValidCancellation(addr, token + 'foobar'))
-        addr = "foob@bar.baz"
-        self.assertEquals(False, subscr.isValidCancellation(addr, token))
-
-    def test_isSubscribed(self):
-        subscr = subscribable.getSubscribable(self.doc)
-        addr = "foo@bar.baz"
-        subscr.subscribe(addr)
-        self.assert_(subscr.isSubscribed(addr))
 

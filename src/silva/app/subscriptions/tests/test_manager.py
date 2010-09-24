@@ -87,6 +87,7 @@ class SubscriptionManagerTestCase(unittest.TestCase):
 
     def test_subscribe_unsubscribe(self):
         manager = ISubscriptionManager(self.root.document, None)
+        manager.subscribability = SUBSCRIBABLE
         self.assertEqual(manager.locally_subscribed_emails, set([]))
         self.assertEqual(manager.is_subscribed('sylvain@infrae.com'), False)
 
@@ -107,6 +108,27 @@ class SubscriptionManagerTestCase(unittest.TestCase):
             set(['wim@infrae.com']))
         self.assertEqual(manager.is_subscribed('sylvain@infrae.com'), False)
 
+    def test_is_subscribed(self):
+        """is_subscribed returns True if you are subscribed on of the
+        parents.
+        """
+        manager_root = ISubscriptionManager(self.root, None)
+        manager_root.subscribability = SUBSCRIBABLE
+        manager_root.subscribe('wim@infrae.com')
+        self.assertEqual(manager_root.is_subscribed('wim@infrae.com'), True)
+        self.assertEqual(manager_root.is_subscribed('unknown@u.com'), False)
+
+        manager = ISubscriptionManager(self.root.folder, None)
+        self.assertEqual(manager.is_subscribed('wim@infrae.com'), True)
+        self.assertEqual(manager.is_subscribed('unknown@u.com'), False)
+
+        # If you turn off subscription off at the folder level, you
+        # are no longer subscribed
+        manager.subscribability = NOT_SUBSCRIBABLE
+        self.assertEqual(manager.is_subscribed('wim@infrae.com'), False)
+
+        # That didn't changed anything on the parent
+        self.assertEqual(manager_root.is_subscribed('wim@infrae.com'), True)
 
 def test_suite():
     suite = unittest.TestSuite()
