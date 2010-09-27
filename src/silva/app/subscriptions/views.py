@@ -170,8 +170,7 @@ class SubscriptionConfirmationPage(silvaviews.Page):
             return
         self.status = _(
             u'You have been successfully subscribed. '
-            u'This means you will receive email notifications '
-            u'whenever a new version of these pages becomes available.')
+            u'You will now receive email notifications.')
 
 
 class SubscriptionCancellationConfirmationPage(SubscriptionConfirmationPage):

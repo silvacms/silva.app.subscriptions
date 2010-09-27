@@ -1,6 +1,6 @@
 To: <tal:to tal:replace="structure options/to" />
 From: <tal:from tal:replace="structure options/from" />
-Subject: Change notification "<tal:title tal:replace="context/get_title_or_id" />"
+Subject: Change notification for "<tal:title tal:replace="context/get_title_or_id" />"
 Content-Type: text/plain; charset=utf-8
 
 

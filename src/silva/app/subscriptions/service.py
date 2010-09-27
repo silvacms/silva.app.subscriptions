@@ -58,7 +58,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
 
     # subscriptions are disabled by default
     _enabled = False
-    _from = 'Silva Subscription Service <subscription-service@example.com>'
+    _from = 'Subscription Service <subscription-service@example.com>'
     _sitename = 'Silva'
     _maximum_delay = 3
 
@@ -92,6 +92,8 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Send out request for subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
+        if not self.are_subscriptions_enabled():
+            raise errors.NotSubscribableError()
 
         manager = ISubscriptionManager(content, None)
         # see if content is subscribable
