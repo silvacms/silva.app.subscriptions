@@ -175,7 +175,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
             raise errors.CancellationError()
         manager.unsubscribe(email)
 
-    security.declarePrivate('sendNotificationEmail')
+    security.declarePrivate('send_notification')
     def send_notification(
         self, content, template_id='publication_event_template'):
         if not self.are_subscriptions_enabled():
