@@ -119,8 +119,8 @@ class SubscriptionForm(silvaforms.PublicForm):
                  mapping={'title': self.context.get_title()})
     description =_(
         u'Fill in your email address if you want to receive an a '
-        u'email notifications whenever a new version of this page '
-        u'or its subpages becomes available.')
+        u'email notifications whenever a change happen at this URL. '
+        u'You can cancel notification if already subscribed as well.')
     fields = subscription_fields.copy()
     actions = subscription_actions.copy()
 
