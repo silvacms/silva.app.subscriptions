@@ -33,7 +33,7 @@ class ISubscriptionFields(interface.Interface):
         title=_(u"Captcha"),
         description=_(
             u'To submit please enter the characters displayed in this image. '
-            u'You can type them in lower case..'),
+            u'You can type them in lower case.'),
         required=True)
 
 def captcha_available(form):
