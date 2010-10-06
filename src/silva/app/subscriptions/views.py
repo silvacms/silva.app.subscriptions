@@ -26,12 +26,14 @@ class ISubscriptionFields(interface.Interface):
     email = RFC822MailAddress(
         title=_(u"Email address"),
         description=_(
-            u"Enter your email on which you wish receive your notifications."),
+            u"Enter your email address where you would like to receive "
+            u"notifications."),
         required=True)
     captcha = Captcha(
         title=_(u"Captcha"),
         description=_(
-            u'Please retype the captcha below to verify that you are human.'),
+            u'To submit please enter the characters displayed in this image. '
+            u'You can type them in lower case..'),
         required=True)
 
 def captcha_available(form):
