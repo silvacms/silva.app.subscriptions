@@ -202,9 +202,9 @@ class SubscriptionContentProvider(silvaforms.PublicContentProviderForm):
 
     label = _(u'Subscribe / Unsubscribe')
     description =_(
-        u'Fill in your email address if you want to receive an a '
-        u'email notifications whenever a new version of this page '
-        u'or its subpages becomes available.')
+        u'Fill in your email address if you wish to receive email '
+        u'notifications whenever an update occurs. You can cancel '
+        u'your notifications at anytime.')
     fields = subscription_fields.copy()
     actions = subscription_actions.copy()
 
