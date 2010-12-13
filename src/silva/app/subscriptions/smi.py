@@ -47,7 +47,7 @@ class ISubscribableSettings(Interface):
     locally_subscribed_emails = schema.Set(
         title=_(u"subscribed email addresses"),
         description=_(u"List of email addresses currently subscribed "
-                      u"to this content at this level. "),
+                      u"to this content at this level, one per line. "),
         value_type=schema.TextLine(required=True),
         required=False)
 
@@ -64,6 +64,7 @@ class SubscriptionForm(silvaforms.SMIForm):
     label = _(u"manage subscriptions")
     fields = silvaforms.Fields(ISubscribableSettings)
     fields['subscribability'].mode = 'radio'
+    fields['locally_subscribed_emails'].mode = 'lines'
     ignoreContent = False
     dataManager = silvaforms.makeAdaptiveDataManager(ISubscriptionManager)
     actions = silvaforms.Actions(
