@@ -8,10 +8,9 @@ from silva.app.subscriptions.interfaces import (
     ISubscriptionService, ISubscriptionManager)
 from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
-from silva.core.interfaces import ISilvaObject
-from silva.core.smi import smi as silvasmi
-from silva.core.smi.interfaces import IPropertiesTab
+from silva.core.interfaces import ISilvaObject, IContainer
 from silva.core.views import views as silvaviews
+from silva.ui.menu import SettingsMenuItem
 from silva.translations import translate as _
 from zeam.form import silva as silvaforms
 from zope import schema
@@ -19,6 +18,22 @@ from zope.component import queryUtility
 from zope.interface import Interface
 from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
+
+
+class SubscriptionButton(SettingsMenuItem):
+    grok.context(IContainer)
+    grok.order(110)
+    grok.require('silva.ManageSilvaContent')
+
+    name = _(u"subscriptions")
+    screen = 'subscriptions'
+    description = _(u"manage subscriptions")
+
+    def available(self):
+        if ISubscriptionManager(self.context, None) is None:
+            return False
+        service = queryUtility(ISubscriptionService)
+        return service is not None and service.are_subscriptions_enabled()
 
 
 @grok.provider(IContextSourceBinder)
@@ -56,8 +71,7 @@ class SubscriptionForm(silvaforms.SMIForm):
     """Edit subscriptions.
     """
     grok.context(ISilvaObject)
-    grok.implements(IPropertiesTab)
-    grok.name('tab_subscriptions')
+    grok.name('silva.ui.subscriptions')
     grok.require('silva.ManageSilvaContent')
 
     tab = 'properties'
@@ -73,7 +87,7 @@ class SubscriptionForm(silvaforms.SMIForm):
 
 
 class SubscriptionPortlet(silvaviews.Viewlet):
-    grok.viewletmanager(silvasmi.SMIPortletManager)
+    grok.viewletmanager(Interface)
     grok.order(0)
     grok.view(SubscriptionForm)
 
@@ -85,18 +99,3 @@ class SubscriptionPortlet(silvaviews.Viewlet):
         self.above_subscribers = self.all_subscribers - self.locally_subscribers
 
 
-class SubscriptionButton(silvasmi.SMIMiddleGroundButton):
-    grok.order(110)
-    grok.require('silva.ManageSilvaContent')
-    grok.view(IPropertiesTab)
-
-    tab = 'tab_subscriptions'
-    label = _(u"subscriptions")
-    help = _(u"manage subscriptions: alt-u")
-    accesskey = "u"
-
-    def available(self):
-        if ISubscriptionManager(self.context, None) is None:
-            return False
-        service = queryUtility(ISubscriptionService)
-        return service is not None and service.are_subscriptions_enabled()
