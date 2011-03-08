@@ -25,7 +25,7 @@ class SubscriptionButton(SettingsMenuItem):
     grok.order(110)
     grok.require('silva.ManageSilvaContent')
 
-    name = _(u"subscriptions")
+    name = _(u"Subscriptions")
     screen = 'subscriptions'
     description = _(u"manage subscriptions")
 
