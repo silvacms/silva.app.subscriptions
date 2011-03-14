@@ -1,26 +1,26 @@
-<div class="info" i18n:domain="silva">
-  <h3>
+<div class="portlet" i18n:domain="silva">
+  <h4>
     <img src="#" alt="Subscription"
-         tal:attributes="src static/subscribe.gif" />
+         tal:attributes="src static['subscribe.gif']()" />
     <tal:title i18n:translate="">Subscriptions info</tal:title>
-  </h3>
-  <tal:status tal:condition="not:viewlet/is_enabled"
+  </h4>
+  <p tal:condition="not viewlet.is_enabled"
               i18n:translate="">
     This content can not be subscribed to.
-  </tal:status>
-  <tal:status tal:condition="viewlet/is_enabled"
+  </p>
+  <p tal:condition="viewlet.is_enabled"
               i18n:translate="">
     This content can be subscribed to.
-  </tal:status>
-  <tal:details tal:condition="viewlet/is_enabled">
+  </p>
+  <tal:details tal:condition="viewlet.is_enabled">
     <h4 i18n:translate="">Other subscriptions</h4>
     <p i18n:translate=""
-       tal:condition="viewlet/above_subscribers">
-      <span tal:replace="viewlet/above_subscribers"
+       tal:condition="viewlet.above_subscribers">
+      <span tal:replace="viewlet.above_subscribers"
             i18n:name="count" />
       subscription(s) for this content defined above.
     </p>
-    <p tal:condition="not:viewlet/above_subscribers"
+    <p tal:condition="not viewlet.above_subscribers"
        i18n:translate="">
       No other subscriptions for this object.
     </p>

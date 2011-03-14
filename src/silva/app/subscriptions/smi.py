@@ -20,7 +20,7 @@ from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
 
 
-class SubscriptionButton(SettingsMenuItem):
+class SubscriptionMenu(SettingsMenuItem):
     grok.context(IContainer)
     grok.order(110)
     grok.require('silva.ManageSilvaContent')
@@ -74,8 +74,7 @@ class SubscriptionForm(silvaforms.SMIForm):
     grok.name('silva.ui.subscriptions')
     grok.require('silva.ManageSilvaContent')
 
-    tab = 'properties'
-    label = _(u"manage subscriptions")
+    label = _(u"Manage subscriptions")
     fields = silvaforms.Fields(ISubscribableSettings)
     fields['subscribability'].mode = 'radio'
     fields['locally_subscribed_emails'].mode = 'lines'
@@ -87,9 +86,9 @@ class SubscriptionForm(silvaforms.SMIForm):
 
 
 class SubscriptionPortlet(silvaviews.Viewlet):
-    grok.viewletmanager(Interface)
     grok.order(0)
     grok.view(SubscriptionForm)
+    grok.viewletmanager(silvaforms.SMIFormPortlets)
 
     def update(self):
         settings = ISubscriptionManager(self.context)
