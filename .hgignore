@@ -1,5 +1,7 @@
 .pyc
 .pyo
+.cpt.py
+.cpt.pyc
 ~
 #
 .egg-info
