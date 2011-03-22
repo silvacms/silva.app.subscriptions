@@ -10,7 +10,7 @@ from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
 from silva.core.interfaces import ISilvaObject, IContainer
 from silva.core.views import views as silvaviews
-from silva.core.smi.settings import SettingsMenu
+from silva.core.smi.settings import SettingsMenu, Settings
 from silva.ui.menu import MenuItem
 from silva.translations import translate as _
 
@@ -72,8 +72,8 @@ class ISubscribableSettings(Interface):
 class SubscriptionForm(silvaforms.SMIForm):
     """Edit subscriptions.
     """
-    grok.context(ISilvaObject)
-    grok.name('silva.ui.subscriptions')
+    grok.adapts(Settings, ISilvaObject)
+    grok.name('subscriptions')
     grok.require('silva.ManageSilvaContent')
 
     label = _(u"Manage subscriptions")
