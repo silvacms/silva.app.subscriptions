@@ -10,8 +10,10 @@ from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
 from silva.core.interfaces import ISilvaObject, IContainer
 from silva.core.views import views as silvaviews
-from silva.ui.menu import SettingsMenuItem
+from silva.core.smi.settings import SettingsMenu
+from silva.ui.menu import MenuItem
 from silva.translations import translate as _
+
 from zeam.form import silva as silvaforms
 from zope import schema
 from zope.component import queryUtility
@@ -20,8 +22,8 @@ from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
 
 
-class SubscriptionMenu(SettingsMenuItem):
-    grok.context(IContainer)
+class SubscriptionMenu(MenuItem):
+    grok.adapts(SettingsMenu, IContainer)
     grok.order(110)
     grok.require('silva.ManageSilvaContent')
 
@@ -30,7 +32,7 @@ class SubscriptionMenu(SettingsMenuItem):
     description = _(u"manage subscriptions")
 
     def available(self):
-        if ISubscriptionManager(self.context, None) is None:
+        if ISubscriptionManager(self.content, None) is None:
             return False
         service = queryUtility(ISubscriptionService)
         return service is not None and service.are_subscriptions_enabled()
