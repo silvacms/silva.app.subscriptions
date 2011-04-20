@@ -26,9 +26,8 @@ class SubscriptionServiceTestCase(unittest.TestCase):
         factory = self.root.manage_addProduct['silva.app.subscriptions']
         factory.manage_addSubscriptionService()
 
-        factory = self.root.manage_addProduct['SilvaDocument']
-        factory.manage_addDocument('document', 'Document')
         factory = self.root.manage_addProduct['Silva']
+        factory.manage_addMockupVersionedContent('document', 'Document')
         factory.manage_addFolder('folder', u'Test Folder')
         factory.manage_addGhost('ghost', None, haunted=self.root.document)
         factory.manage_addFile('file', u'Downloable File')

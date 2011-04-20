@@ -24,13 +24,12 @@ class SubscriptionManagerTestCase(unittest.TestCase):
         factory = self.root.manage_addProduct['silva.app.subscriptions']
         factory.manage_addSubscriptionService()
 
-        factory = self.root.manage_addProduct['SilvaDocument']
-        factory.manage_addDocument('document', 'Document')
         factory = self.root.manage_addProduct['Silva']
+        factory.manage_addMockupVersionedContent('document', 'Document')
         factory.manage_addFolder('folder', u'Test Folder')
         factory.manage_addFile('file', u'Downloable File')
-        factory = self.root.folder.manage_addProduct['SilvaDocument']
-        factory.manage_addDocument('index', 'Index')
+        factory = self.root.folder.manage_addProduct['Silva']
+        factory.manage_addMockupVersionedContent('index', 'Index')
 
     def test_manager(self):
         """Check that we can get the adapter.

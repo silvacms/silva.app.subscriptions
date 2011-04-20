@@ -12,6 +12,4 @@ class SilvaSubscriptionLayer(SilvaLayer):
         'silva.app.subscription',
         ]
 
-
-FunctionalLayer = SilvaSubscriptionLayer(
-    silva.app.subscriptions, zcml_file="configure.zcml")
+FunctionalLayer = SilvaSubscriptionLayer(silva.app.subscriptions)
