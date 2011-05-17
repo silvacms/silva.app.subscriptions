@@ -5,7 +5,7 @@
 import itertools
 
 from Acquisition import aq_parent
-from BTrees.OOBTree import OOBTree
+from persistent import Persistent
 
 from five import grok
 from silva.core import interfaces
@@ -13,6 +13,8 @@ from silva.app.subscriptions.interfaces import ISubscriptionManager
 from silva.app.subscriptions.interfaces import ISubscription
 from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
+
+from zope.annotation.interfaces import IAnnotations
 
 
 class Subscription(object):
@@ -24,6 +26,13 @@ class Subscription(object):
         self.manager = manager
 
 
+class SubscribableData(Persistent):
+
+    def __init__(self, default_subscribability):
+        self.subscribability = default_subscribability
+        self.subscriptions = set([])
+
+
 class Subscribable(grok.Adapter):
     """Subscribable adapters potentially subscribable content and container
     Silva objects and encapsulates the necessary API for
@@ -33,25 +42,25 @@ class Subscribable(grok.Adapter):
     grok.implements(ISubscriptionManager)
     grok.provides(ISubscriptionManager)
 
+    default_subscribability = ACQUIRE_SUBSCRIBABILITY
     subscribability_possibilities = [
         NOT_SUBSCRIBABLE, SUBSCRIBABLE, ACQUIRE_SUBSCRIBABILITY]
 
     def __init__(self, context):
         super(Subscribable, self).__init__(context)
-        if not hasattr(context, '__subscribability__'):
-            context.__subscribability__ = ACQUIRE_SUBSCRIBABILITY
-        if not hasattr(context, '__subscriptions__'):
-            context.__subscriptions__ = OOBTree()
-        if not hasattr(context, '__pending_subscription_tokens__'):
-            context.__pending_subscription_tokens__ = OOBTree()
+        annotations = IAnnotations(self.context)
+        data = annotations.get('silva.app.subscriptions')
+        if data is None:
+            data = SubscribableData(self.default_subscribability)
+            annotations['silva.app.subscriptions'] = data
+        self.data =  data
 
     # ACCESSORS
 
     def is_subscribable(self):
-        subscribability = self.context.__subscribability__
-        if subscribability == NOT_SUBSCRIBABLE:
+        if self.data.subscribability == NOT_SUBSCRIBABLE:
             return False
-        if subscribability == SUBSCRIBABLE:
+        if self.data.subscribability == SUBSCRIBABLE:
             return True
         parent = ISubscriptionManager(aq_parent(self.context))
         return parent.is_subscribable()
@@ -59,22 +68,18 @@ class Subscribable(grok.Adapter):
     @apply
     def subscribability():
         def getter(self):
-            return self.context.__subscribability__
+            return self.data.subscribability
         def setter(self, flag):
             assert flag in self.subscribability_possibilities
-            self.context.__subscribability__ = flag
+            self.data.subscribability = flag
         return property(getter, setter)
 
     @apply
     def locally_subscribed_emails():
         def getter(self):
-            return set(self.context.__subscriptions__.keys())
+            return set(self.data.subscriptions)
         def setter(self, emails):
-            # XXX Should not this be a set ??? (Need an upgrader)
-            subscriptions = self.context.__subscriptions__
-            subscriptions.clear()
-            subscriptions.update(
-                zip(emails, itertools.repeat(None, len(emails))))
+            self.data.subscriptions = set(emails)
         return property(getter, setter)
 
     # ACCESSORS
@@ -93,13 +98,13 @@ class Subscribable(grok.Adapter):
         # subscribables where the non-subscribabiliy is acquired.
         if subscribables is None:
             subscribables = []
-        if self.context.__subscribability__ == NOT_SUBSCRIBABLE:
+        if self.data.subscribability == NOT_SUBSCRIBABLE:
             # Empty list from the point without explicit
             # subscribability onwards.
             del subscribables[last_explicit:]
             return subscribables
         subscribables.append(self)
-        if self.context.__subscribability__ == SUBSCRIBABLE:
+        if self.data.subscribability == SUBSCRIBABLE:
             # Keep a last_explicit for the object with explicit
             # subscribability set.
             last_explicit = len(subscribables)
@@ -121,13 +126,13 @@ class Subscribable(grok.Adapter):
     # MODIFIERS
 
     def subscribe(self, email):
-        subscriptions = self.context.__subscriptions__
-        subscriptions[email] = None
+        self.data.subscriptions.add(email)
+        self.data._p_changed = True
 
     def unsubscribe(self, emailaddress):
-        subscriptions = self.context.__subscriptions__
-        if subscriptions.has_key(emailaddress):
-            del subscriptions[emailaddress]
+        if emailaddress in self.data.subscriptions:
+            self.data.subscriptions.remove(emailaddress)
+            self.data._p_changed = True
 
 
 
@@ -138,19 +143,15 @@ class SubscribableContainer(Subscribable):
 class SubscribableRoot(Subscribable):
     grok.context(interfaces.IRoot)
 
+    default_subscribability = NOT_SUBSCRIBABLE
     subscribability_possibilities = [NOT_SUBSCRIBABLE, SUBSCRIBABLE]
-
-    def __init__(self, context):
-        if not hasattr(context, '__subscribability__'):
-            context.__subscribability__ = NOT_SUBSCRIBABLE
-        super(SubscribableRoot, self).__init__(context)
 
     def _get_subscribable_parents(self, subscribables=None, last_explicit=0):
         # The purpose of last_explicit is to prevent to collect subscribables
         # where the non-subscribabiliy is acquired.
         if subscribables is None:
             subscribables = []
-        if self.context.__subscribability__ == NOT_SUBSCRIBABLE:
+        if self.data.subscribability == NOT_SUBSCRIBABLE:
             # Empty list from the point without explicit
             # subscribability onwards.
             del subscribables[last_explicit:]
