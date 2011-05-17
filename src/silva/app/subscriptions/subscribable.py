@@ -2,8 +2,6 @@
 # See also LICENSE.txt
 # $Id$
 
-import itertools
-
 from Acquisition import aq_parent
 from persistent import Persistent
 
