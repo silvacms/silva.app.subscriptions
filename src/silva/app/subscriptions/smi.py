@@ -22,22 +22,6 @@ from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
 
 
-class SubscriptionMenu(MenuItem):
-    grok.adapts(SettingsMenu, IContainer)
-    grok.order(110)
-    grok.require('silva.ManageSilvaContent')
-
-    name = _(u"Subscriptions")
-    screen = 'subscriptions'
-    description = _(u"manage subscriptions")
-
-    def available(self):
-        if ISubscriptionManager(self.content, None) is None:
-            return False
-        service = queryUtility(ISubscriptionService)
-        return service is not None and service.are_subscriptions_enabled()
-
-
 @grok.provider(IContextSourceBinder)
 def subscribability_options(context):
     options = []
@@ -85,6 +69,22 @@ class SubscriptionForm(silvaforms.SMIForm):
     actions = silvaforms.Actions(
         silvaforms.CancelAction(),
         silvaforms.EditAction())
+
+
+class SubscriptionMenu(MenuItem):
+    grok.adapts(SettingsMenu, IContainer)
+    grok.order(110)
+    grok.require('silva.ManageSilvaContent')
+
+    name = _(u"Subscriptions")
+    screen = SubscriptionForm
+    description = _(u"manage subscriptions")
+
+    def available(self):
+        if ISubscriptionManager(self.content, None) is None:
+            return False
+        service = queryUtility(ISubscriptionService)
+        return service is not None and service.are_subscriptions_enabled()
 
 
 class SubscriptionPortlet(silvaviews.Viewlet):
