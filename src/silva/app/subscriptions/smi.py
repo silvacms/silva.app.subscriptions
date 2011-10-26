@@ -64,6 +64,7 @@ class SubscriptionForm(silvaforms.SMIForm):
     fields = silvaforms.Fields(ISubscribableSettings)
     fields['subscribability'].mode = 'radio'
     fields['locally_subscribed_emails'].mode = 'lines'
+    fields['locally_subscribed_emails'].defaultValue = lambda f: set()
     ignoreContent = False
     dataManager = silvaforms.makeAdaptiveDataManager(ISubscriptionManager)
     actions = silvaforms.Actions(
