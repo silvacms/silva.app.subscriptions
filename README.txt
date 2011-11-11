@@ -2,6 +2,9 @@
 silva.core.subscriptions
 ========================
 
+Introduction
+============
+
 ``silva.core.subscriptions`` let visitors subscribe to Silva content
 in order to receive notification emails on modification. You can only
 subscribe to a part of the site or only to a page.
@@ -20,3 +23,9 @@ used. You can be customized them at will.
 The service provides you with an API usable to develop extensions that
 send notification for any wanted action or event using a custom email
 template of your choice.
+
+Code repository
+===============
+
+You can find the source code for this extension in Mercurial:
+https://hg.infrae.com/silva.app.subscriptions/.

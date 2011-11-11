@@ -6,7 +6,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = '1.2dev'
+version = '3.0b1'
 
 tests_require = [
     'Products.Silva [test]',
@@ -41,12 +41,17 @@ setup(name='silva.app.subscriptions',
         'silva.captcha',
         'silva.core.conf',
         'silva.core.interfaces',
+        'silva.core.layout',
         'silva.core.references',
         'silva.core.services',
+        'silva.core.smi',
+        'silva.core.upgrade',
         'silva.core.views',
         'silva.translations',
+        'silva.ui',
         'z3c.schema',
         'zeam.form.silva',
+        'zope.annotation',
         'zope.component',
         'zope.interface',
         'zope.lifecycleevent',

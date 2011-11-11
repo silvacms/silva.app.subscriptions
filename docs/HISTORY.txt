@@ -1,10 +1,13 @@
 Changes
 =======
 
-1.2 (unreleased)
-----------------
+3.0b1 (2011/11/11)
+------------------
 
-* ...
+* Update SMI interface to use ``silva.ui``.
+
+* Store information in Zope annotations instead of default attributes
+  on the object.
 
 1.1 (2010/12/20)
 ----------------
