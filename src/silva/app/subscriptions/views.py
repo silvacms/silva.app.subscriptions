@@ -7,7 +7,7 @@ from AccessControl import getSecurityManager
 from zExceptions import NotFound
 
 from five import grok
-from megrok.chameleon.components import ChameleonPageTemplate
+from grokcore.chameleon.components import ChameleonPageTemplate
 from silva.app.subscriptions import errors
 from silva.app.subscriptions.interfaces import ISubscriptionService
 from silva.app.subscriptions.interfaces import ISubscriptionManager

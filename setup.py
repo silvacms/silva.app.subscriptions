@@ -36,7 +36,7 @@ setup(name='silva.app.subscriptions',
       install_requires=[
         'Products.Silva',
         'five.grok',
-        'megrok.chameleon',
+        'grokcore.chameleon',
         'setuptools',
         'silva.captcha',
         'silva.core.conf',
