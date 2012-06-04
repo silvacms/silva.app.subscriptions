@@ -26,7 +26,7 @@ from silva.app.subscriptions import errors
 from silva.app.subscriptions.interfaces import (
     ISubscriptionService, ISubscriptionManager)
 from silva.core import conf as silvaconf
-from silva.core.interfaces import IHaunted, IVersion
+from silva.core.interfaces import IHaunted, IVersion, IPublishable
 from silva.core.interfaces.events import IContentPublishedEvent
 from silva.core.layout.interfaces import IMetadata
 from silva.core.references.reference import get_content_id, get_content_from_id
@@ -384,9 +384,10 @@ def version_published(version, event):
     """
     service = queryUtility(ISubscriptionService)
     if service is not None:
-        content = version.get_content()
-        # first send notification for content
-        service.send_notification(content)
-        # now send email for potential haunting ghosts
-        for haunting in IHaunted(content).getHaunting():
-            service.send_notification(haunting)
+        content = version.get_silva_object()
+        if IPublishable.providedBy(content):
+            # first send notification for content
+            service.send_notification(content)
+            # now send email for potential haunting ghosts
+            for haunting in IHaunted(content).getHaunting():
+                service.send_notification(haunting)
