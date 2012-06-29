@@ -27,7 +27,7 @@ class SubscriptionUpgrader(BaseUpgrader):
                  IContainer.providedBy(content)))
 
     def upgrade(self, content):
-        logger.info(u'update subcription in: %s.', content_path(content))
+        logger.info(u'Update subcription in: %s.', content_path(content))
         annotations = IAnnotations(content)
         data = SubscribableData(content.__subscribability__)
         annotations['silva.app.subscriptions'] = data
