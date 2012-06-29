@@ -3,14 +3,17 @@
 # See also LICENSE.txt
 # $Id$
 
+import logging
+
 from Acquisition import aq_base
 
-from silva.core.interfaces import IContent
-from silva.core.upgrade.upgrade import BaseUpgrader, AnyMetaType
+from silva.core.interfaces import IContent, IContainer
+from silva.core.upgrade.upgrade import BaseUpgrader, AnyMetaType, content_path
 from silva.app.subscriptions.subscribable import SubscribableData
 from zope.annotation.interfaces import IAnnotations
 
 VERSION_A0='3.0a0'
+logger = logging.getLogger('silva.core.upgrade')
 
 
 class SubscriptionUpgrader(BaseUpgrader):
@@ -18,19 +21,22 @@ class SubscriptionUpgrader(BaseUpgrader):
     annotation.
     """
 
+    def validate(self, content):
+        return (hasattr(aq_base(content), '__subscribability__') and
+                (IContent.providedBy(content) or
+                 IContainer.providedBy(content)))
+
     def upgrade(self, content):
-        if IContent.providedBy(content):
-            if hasattr(aq_base(content), '__subscribability__'):
-                annotations = IAnnotations(content)
-                if 'silva.app.subscriptions' not in annotations:
-                    data = SubscribableData(content.__subscribability__)
-                    annotations['silva.app.subscriptions'] = data
-                    if hasattr(aq_base(content), '__subscriptions__'):
-                        data.subscriptions = set(content.__subscriptions__.keys())
-                        delattr(content, '__subscriptions__')
-                    if hasattr(aq_base(content), '__pending_subscription_tokens__'):
-                        delattr(content, '__pending_subscription_tokens__')
-                    delattr(content, '__subscribability__')
+        logger.info(u'update subcription in: %s.', content_path(content))
+        annotations = IAnnotations(content)
+        data = SubscribableData(content.__subscribability__)
+        annotations['silva.app.subscriptions'] = data
+        if hasattr(aq_base(content), '__subscriptions__'):
+            data.subscriptions = set(content.__subscriptions__.keys())
+            delattr(content, '__subscriptions__')
+        if hasattr(aq_base(content), '__pending_subscription_tokens__'):
+            delattr(content, '__pending_subscription_tokens__')
+        delattr(content, '__subscribability__')
         return content
 
 
