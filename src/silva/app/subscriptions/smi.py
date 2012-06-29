@@ -8,7 +8,7 @@ from silva.app.subscriptions.interfaces import (
     ISubscriptionService, ISubscriptionManager)
 from silva.app.subscriptions.interfaces import (
     ACQUIRE_SUBSCRIBABILITY, NOT_SUBSCRIBABLE, SUBSCRIBABLE)
-from silva.core.interfaces import ISilvaObject, IContainer
+from silva.core.interfaces import ISilvaObject, IPublishable
 from silva.core.views import views as silvaviews
 from silva.core.smi.settings import SettingsMenu, Settings
 from silva.ui.menu import MenuItem
@@ -73,7 +73,7 @@ class SubscriptionForm(silvaforms.SMIForm):
 
 
 class SubscriptionMenu(MenuItem):
-    grok.adapts(SettingsMenu, IContainer)
+    grok.adapts(SettingsMenu, IPublishable)
     grok.order(110)
     grok.require('silva.ManageSilvaContent')
 
