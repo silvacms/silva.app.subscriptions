@@ -149,6 +149,7 @@ class SubscriptionForm(silvaforms.PublicForm):
 class SubscriptionConfirmationPage(silvaviews.Page):
     grok.context(SubscriptionForm)
     grok.name('confirm_subscription')
+    grok.require('zope2.View')
 
     template = ChameleonPageTemplate(
         filename='templates/confirmationpage.cpt')
