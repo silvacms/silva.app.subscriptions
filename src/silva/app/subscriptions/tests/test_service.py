@@ -4,15 +4,15 @@
 
 import unittest
 
-from Products.Silva.tests.helpers import publish_content
+from zope.component import getUtility
+from zope.interface.verify import verifyObject
 
 from silva.app.subscriptions import errors
 from silva.app.subscriptions.interfaces import ISubscriptionManager
 from silva.app.subscriptions.interfaces import ISubscriptionService
 from silva.app.subscriptions.interfaces import SUBSCRIBABLE
 from silva.app.subscriptions.testing import FunctionalLayer
-from zope.component import getUtility
-from zope.interface.verify import verifyObject
+from silva.core.interfaces import IPublicationWorkflow
 
 
 class SubscriptionServiceTestCase(unittest.TestCase):
@@ -212,7 +212,7 @@ class SubscriptionServiceTestCase(unittest.TestCase):
         manager.subscribe('torvald@example.com')
         self.assertEqual(len(self.root.service_mailhost.messages), 0)
 
-        publish_content(self.root.document)
+        IPublicationWorkflow(self.root.document).publish()
 
         # We have two notification, one for the document, one for the ghost
         self.assertEqual(len(self.root.service_mailhost.messages), 2)
@@ -236,7 +236,7 @@ class SubscriptionServiceTestCase(unittest.TestCase):
         # We now disable the subscription. And publish a new version.
         service.disable_subscriptions()
         self.root.document.create_copy()
-        publish_content(self.root.document)
+        IPublicationWorkflow(self.root.document).publish()
 
         # No notification have been sent
         self.assertEqual(len(self.root.service_mailhost.messages), 0)
