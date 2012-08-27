@@ -2,15 +2,15 @@
   <h4>
     <img src="#" alt="Subscription"
          tal:attributes="src static['subscribe.gif']()" />
-    <tal:title i18n:translate="">Subscriptions info</tal:title>
+    <tal:title i18n:translate="">Subscriptions status</tal:title>
   </h4>
   <p tal:condition="not viewlet.is_enabled"
               i18n:translate="">
-    This content can not be subscribed to.
+    This item can not be subscribed to.
   </p>
   <p tal:condition="viewlet.is_enabled"
               i18n:translate="">
-    This content can be subscribed to.
+    This item can be subscribed to.
   </p>
   <tal:details tal:condition="viewlet.is_enabled">
     <h4 i18n:translate="">Other subscriptions</h4>
@@ -18,11 +18,11 @@
        tal:condition="viewlet.above_subscribers">
       <span tal:replace="viewlet.above_subscribers"
             i18n:name="count" />
-      subscription(s) for this content defined above.
+      subscription(s) for this item defined above.
     </p>
     <p tal:condition="not viewlet.above_subscribers"
        i18n:translate="">
-      No other subscriptions for this object.
+      No other subscriptions for this item.
     </p>
   </tal:details>
 </div>
