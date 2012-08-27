@@ -26,8 +26,7 @@ class ISubscriptionFields(interface.Interface):
     email = RFC822MailAddress(
         title=_(u"Email address"),
         description=_(
-            u"Enter your email address where you would like to receive "
-            u"notifications."),
+            u"Enter your email address."),
         required=True)
     captcha = Captcha(
         title=_(u"Captcha"),
@@ -72,7 +71,7 @@ class SubscribeAction(silvaforms.Action):
         except errors.AlreadySubscribedError:
             form.status = _(u"You are already subscribed to this content.")
             return silvaforms.FAILURE
-        form.status = _(u'Confirmation request for subscription '
+        form.status = _(u'A confirmation request for subscription '
                         u'has been emailed to ${email}.',
                         mapping={'email': data['email']})
         return silvaforms.SUCCESS
@@ -100,7 +99,7 @@ class UnsubscribeAction(silvaforms.Action):
         except errors.NotSubscribedError:
             form.status = _(u"You are not subscribed to this content.")
             return silvaforms.FAILURE
-        form.status = _(u'Confirmation request for cancellation '
+        form.status = _(u'A confirmation request for cancellation '
                         u'has been emailed to ${email}.',
                         mapping={'email': data['email']})
         return silvaforms.SUCCESS
@@ -117,12 +116,12 @@ class SubscriptionForm(silvaforms.PublicForm):
 
     @property
     def label(self):
-        return _(u'subscribe / unsubscribe to ${title}',
+        return _(u'Subscribe / Unsubscribe to ${title}',
                  mapping={'title': self.context.get_title()})
     description =_(
-        u'Fill in your email address if you want to receive an a '
-        u'email notifications whenever a change happen at this URL. '
-        u'You can cancel notification if already subscribed as well.')
+        u"Fill in your email address if you wish to receive "
+        u"email notifications whenever an update happens at this URL. "
+        u"You can also cancel notifications if you're already subscribed.")
     fields = subscription_fields.copy()
     actions = subscription_actions.copy()
 
@@ -134,10 +133,10 @@ class SubscriptionForm(silvaforms.PublicForm):
     def update(self):
         service = queryUtility(ISubscriptionService)
         if service is None or not service.are_subscriptions_enabled():
-            raise NotFound(u"Subscription are not enabled.")
+            raise NotFound(u"Sorry, subscriptions are not enabled.")
         self.manager = ISubscriptionManager(self.context, None)
         if self.manager is None:
-            raise NotFound(u"Subscription not available on this content")
+            raise NotFound(u"Sorry, subscriptions are not available here.")
         self.default_email = None
         self.user_id = getSecurityManager().getUser().getId()
         if self.user_id:
@@ -205,7 +204,7 @@ class SubscriptionContentProvider(silvaforms.PublicContentProviderForm):
     description =_(
         u'Fill in your email address if you wish to receive email '
         u'notifications whenever an update occurs. You can cancel '
-        u'your notifications at anytime.')
+        u'your notifications at any time.')
     fields = subscription_fields.copy()
     actions = subscription_actions.copy()
 
