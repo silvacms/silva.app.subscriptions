@@ -6,7 +6,8 @@
   <p class="subscription-result"
      tal:content="view.status">Result</p>
   <a href="#"
-     tal:attributes="href path:context/@@absolute_url">
+     tal:attributes="href path:context/@@absolute_url"
+     i18n:translate="">
     Go to the corresponding location.
   </a>
 </tal:subscription>
