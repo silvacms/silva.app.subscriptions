@@ -1,10 +1,10 @@
 Changes
 =======
 
-3.0.1 (unreleased)
+3.0.1 (2013/03/05)
 ------------------
 
-* ...
+* Add a link in the SMI to the public form to subscribe or unsubscribe.
 
 3.0 (2012/12/11)
 ----------------
