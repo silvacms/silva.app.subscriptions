@@ -19,6 +19,7 @@ from zope.component import queryUtility
 from zope.interface import Interface
 from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
+from zope.traversing.browser import absoluteURL
 
 
 @grok.provider(IContextSourceBinder)
@@ -98,5 +99,8 @@ class SubscriptionPortlet(silvaviews.Viewlet):
         self.all_subscribers = len(settings.subscriptions)
         self.locally_subscribers = len(settings.locally_subscribed_emails)
         self.above_subscribers = self.all_subscribers - self.locally_subscribers
+        if self.is_enabled:
+            url = absoluteURL(self.context, self.request)
+            self.subscribe_url = url + '/subscriptions.html'
 
 

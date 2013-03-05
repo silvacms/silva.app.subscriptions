@@ -8,11 +8,16 @@
               i18n:translate="">
     This item can not be subscribed to.
   </p>
-  <p tal:condition="viewlet.is_enabled"
-              i18n:translate="">
-    This item can be subscribed to.
-  </p>
   <tal:details tal:condition="viewlet.is_enabled">
+    <p i18n:translate="">
+      This item can be subscribed to.
+    </p>
+    <p i18n:translate="">
+      You can use this
+      <a href="${viewlet.subscribe_url}" i18n:name="URL"
+         target="_blank">URL</a> to publicly subscribe or unsubscribe
+         to the item.
+    </p>
     <h4 i18n:translate="">Other subscriptions</h4>
     <p i18n:translate=""
        tal:condition="viewlet.above_subscribers">
