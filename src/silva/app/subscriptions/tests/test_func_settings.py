@@ -34,7 +34,7 @@ class SettingsTestCase(unittest.TestCase):
         self.assertEqual(browser.inspect.title, u"root")
         self.assertEqual(
             browser.inspect.tabs,
-            ['Content', 'Add', 'Properties', 'Settings'])
+            ['Content', 'Preview', 'Add', 'Properties', 'Settings'])
         self.assertEqual(browser.inspect.tabs['Settings'].open.click(), 200)
         self.assertIn('Subscriptions', browser.inspect.tabs['Settings'].entries)
         self.assertEqual(
