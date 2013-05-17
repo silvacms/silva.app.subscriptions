@@ -17,6 +17,7 @@ from silva.core.views import views as silvaviews
 from silva.translations import translate as _
 from z3c.schema.email import RFC822MailAddress
 from zeam.form import silva as silvaforms
+from zeam.form.silva.interfaces import ICancelerAction
 from zope import interface
 from zope.component import queryUtility, getUtility
 
@@ -34,8 +35,10 @@ class ISubscriptionFields(interface.Interface):
             u'You can type them in lower case.'),
         required=True)
 
+
 def captcha_available(form):
     return not form.user_id
+
 
 def email_default(form):
     if form.default_email:
@@ -117,14 +120,14 @@ class SubscriptionForm(silvaforms.PublicForm):
     def label(self):
         return _(u'Subscribe / Unsubscribe to ${title}',
                  mapping={'title': self.context.get_title()})
-    description =_(
+    description = _(
         u"Fill in your email address if you wish to receive "
         u"email notifications whenever an update happens at this URL. "
         u"You can also cancel notifications if you're already subscribed.")
     fields = subscription_fields.copy()
     actions = subscription_actions.copy()
 
-    @silvaforms.action(_(u'Cancel'))
+    @silvaforms.action(_(u'Cancel'), implements=ICancelerAction)
     def action_cancel(self):
         self.redirect(self.url())
         return silvaforms.SUCCESS
@@ -200,7 +203,7 @@ class SubscriptionContentProvider(silvaforms.PublicContentProviderForm):
     grok.name('subscriptions')
 
     label = _(u'Subscribe / Unsubscribe')
-    description =_(
+    description = _(
         u'Fill in your email address if you wish to receive email '
         u'notifications whenever an update occurs. You can cancel '
         u'your notifications at any time.')
