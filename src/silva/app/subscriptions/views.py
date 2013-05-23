@@ -25,8 +25,6 @@ from zope.component import queryUtility, getUtility
 class ISubscriptionFields(interface.Interface):
     email = RFC822MailAddress(
         title=_(u"Email address"),
-        description=_(
-            u"Enter your email address."),
         required=True)
     captcha = Captcha(
         title=_(u"Captcha"),
