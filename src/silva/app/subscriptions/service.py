@@ -278,7 +278,11 @@ class SubscriptionConfiguration(silvaforms.ComposedConfigurationForm):
     """
     grok.context(SubscriptionService)
 
-    label = _(u"Service Subscriptions Configuration")
+    label = _(u"Subscriptions Configuration")
+    description = _(u"Enable or disable the possiblity to let users "
+                    u"subscribe to content. If they do, they will receive "
+                    u"an email notification when the content is modified "
+                    u"and published.")
 
 
 class SubscriptionConfigurationActivate(silvaforms.SMISubForm):
@@ -287,7 +291,8 @@ class SubscriptionConfigurationActivate(silvaforms.SMISubForm):
     silvaforms.order(20)
 
     label = _(u"Activate subscriptions")
-    description = _(u"Activate sending emails notifications")
+    description = _(u"Activate sending emails notifications when a content "
+                    u"is modified.")
     actions = silvaforms.Actions(silvaforms.CancelConfigurationAction())
 
     def available(self):
@@ -306,7 +311,7 @@ class SubscriptionConfigurationOptions(silvaforms.SMISubForm):
     silvaforms.order(30)
 
     label = _(u"Configure subscriptions")
-    description = _(u"Modify email notification settings")
+    description = _(u"Modify email notification settings.")
     ignoreContent = False
     fields = silvaforms.Fields(ISubscriptionSettings)
     actions = silvaforms.Actions(
@@ -320,7 +325,7 @@ class SubscriptionConfigurationDisable(silvaforms.SMISubForm):
     silvaforms.order(20)
 
     label = _(u"Disable subscriptions")
-    description = _(u"Disable sending emails notifications")
+    description = _(u"Disable sending emails notifications.")
     actions = silvaforms.Actions(silvaforms.CancelConfigurationAction())
 
     def available(self):
