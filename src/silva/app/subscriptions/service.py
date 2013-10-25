@@ -28,6 +28,7 @@ from silva.app.subscriptions.interfaces import (
 from silva.core import conf as silvaconf
 from silva.core.interfaces import IHaunted, IVersion, IPublishable
 from silva.core.interfaces.events import IContentPublishedEvent
+from silva.core.interfaces import ISilvaConfigurableService
 from silva.core.layout.interfaces import IMetadata
 from silva.core.references.reference import get_content_id, get_content_from_id
 from silva.core.services.base import SilvaService
@@ -44,7 +45,7 @@ logger = logging.getLogger('silva.app.subscriptions')
 class SubscriptionService(Folder.Folder, SilvaService):
     """Subscription Service
     """
-    grok.implements(ISubscriptionService)
+    grok.implements(ISubscriptionService, ISilvaConfigurableService)
     default_service_identifier = 'service_subscriptions'
 
     meta_type = "Silva Subscription Service"
@@ -272,23 +273,22 @@ class ISubscriptionSettings(interface.Interface):
         required=True)
 
 
-class SubscriptionServiceManagementView(silvaforms.ZMIComposedForm):
+class SubscriptionConfiguration(silvaforms.ComposedConfigurationForm):
     """Edit File Serivce.
     """
-    grok.require('zope2.ViewManagementScreens')
-    grok.name('manage_settings')
     grok.context(SubscriptionService)
 
     label = _(u"Service Subscriptions Configuration")
 
 
-class SubscriptionServiceActivateForm(silvaforms.ZMISubForm):
+class SubscriptionConfigurationActivate(silvaforms.SMISubForm):
     grok.context(SubscriptionService)
-    silvaforms.view(SubscriptionServiceManagementView)
+    silvaforms.view(SubscriptionConfiguration)
     silvaforms.order(20)
 
     label = _(u"Activate subscriptions")
     description = _(u"Activate sending emails notifications")
+    actions = silvaforms.Actions(silvaforms.CancelAction())
 
     def available(self):
         return not self.context.are_subscriptions_enabled()
@@ -300,25 +300,28 @@ class SubscriptionServiceActivateForm(silvaforms.ZMISubForm):
         return silvaforms.SUCCESS
 
 
-class SubscriptionServiceOptionForm(silvaforms.ZMISubForm):
+class SubscriptionConfigurationOptions(silvaforms.SMISubForm):
     grok.context(SubscriptionService)
-    silvaforms.view(SubscriptionServiceManagementView)
+    silvaforms.view(SubscriptionConfiguration)
     silvaforms.order(30)
 
     label = _(u"Configure subscriptions")
     description = _(u"Modify email notification settings")
     ignoreContent = False
     fields = silvaforms.Fields(ISubscriptionSettings)
-    actions = silvaforms.Actions(silvaforms.EditAction())
+    actions = silvaforms.Actions(
+        silvaforms.CancelAction(),
+        silvaforms.EditAction())
 
 
-class SubscriptionServiceDisableForm(silvaforms.ZMISubForm):
+class SubscriptionConfigurationDisable(silvaforms.SMISubForm):
     grok.context(SubscriptionService)
-    silvaforms.view(SubscriptionServiceManagementView)
+    silvaforms.view(SubscriptionConfiguration)
     silvaforms.order(20)
 
     label = _(u"Disable subscriptions")
     description = _(u"Disable sending emails notifications")
+    actions = silvaforms.Actions(silvaforms.CancelAction())
 
     def available(self):
         return self.context.are_subscriptions_enabled()
@@ -328,6 +331,16 @@ class SubscriptionServiceDisableForm(silvaforms.ZMISubForm):
         self.context.disable_subscriptions()
         self.status = _(u"Subscriptions disabled.")
         return silvaforms.SUCCESS
+
+
+class SubscriptionServiceManagementView(silvaforms.ZMIComposedForm):
+    """Edit File Serivce.
+    """
+    grok.require('zope2.ViewManagementScreens')
+    grok.name('manage_settings')
+    grok.context(SubscriptionService)
+
+    label = _(u"Service Subscriptions Configuration")
 
 
 class SubscriptionServiceInstallMaildropHostForm(silvaforms.ZMISubForm):
