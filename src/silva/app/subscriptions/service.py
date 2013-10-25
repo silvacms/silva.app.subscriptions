@@ -278,7 +278,7 @@ class SubscriptionConfiguration(silvaforms.ComposedConfigurationForm):
     """
     grok.context(SubscriptionService)
 
-    label = _(u"Subscriptions Configuration")
+    label = _(u"Subscriptions configuration")
     description = _(u"Enable or disable the possiblity to let users "
                     u"subscribe to content. If they do, they will receive "
                     u"an email notification when the content is modified "
