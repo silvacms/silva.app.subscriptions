@@ -288,7 +288,7 @@ class SubscriptionConfigurationActivate(silvaforms.SMISubForm):
 
     label = _(u"Activate subscriptions")
     description = _(u"Activate sending emails notifications")
-    actions = silvaforms.Actions(silvaforms.CancelAction())
+    actions = silvaforms.Actions(silvaforms.CancelConfigurationAction())
 
     def available(self):
         return not self.context.are_subscriptions_enabled()
@@ -310,7 +310,7 @@ class SubscriptionConfigurationOptions(silvaforms.SMISubForm):
     ignoreContent = False
     fields = silvaforms.Fields(ISubscriptionSettings)
     actions = silvaforms.Actions(
-        silvaforms.CancelAction(),
+        silvaforms.CancelConfigurationAction(),
         silvaforms.EditAction())
 
 
@@ -321,7 +321,7 @@ class SubscriptionConfigurationDisable(silvaforms.SMISubForm):
 
     label = _(u"Disable subscriptions")
     description = _(u"Disable sending emails notifications")
-    actions = silvaforms.Actions(silvaforms.CancelAction())
+    actions = silvaforms.Actions(silvaforms.CancelConfigurationAction())
 
     def available(self):
         return self.context.are_subscriptions_enabled()
