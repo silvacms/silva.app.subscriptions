@@ -149,8 +149,13 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Check and confirm subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
+        try:
+            content_id = int(content_id)
+        except ValueError:
+            raise errors.NotSubscribableError()
         content = get_content_from_id(content_id)
-        assert content is not None, u'Invalid content'
+        if content is None:
+            raise errors.NotSubscribableError()
         manager = ISubscriptionManager(content, None)
         if manager is None:
             raise errors.NotSubscribableError()
@@ -165,8 +170,13 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Check and confirm cancellation
         # NOTE: no doc string, so, not *publishable* TTW
         #
+        try:
+            content_id = int(content_id)
+        except ValueError:
+            raise errors.NotSubscribableError()
         content = get_content_from_id(content_id)
-        assert content is not None, u'Invalid content'
+        if content is None:
+            raise errors.NotSubscribableError()
         manager = ISubscriptionManager(content, None)
         if manager is None:
             raise errors.CancellationError()
