@@ -42,6 +42,24 @@ from zope.lifecycleevent.interfaces import IObjectCreatedEvent
 logger = logging.getLogger('silva.app.subscriptions')
 
 
+def get_subscribable_content(identifier):
+    """Fetch a subscribable content out of an identifier.
+    """
+    if not identifier:
+        # Identifier is missing.
+        raise errors.NotSubscribableError()
+    try:
+        identifier = int(identifier)
+    except (ValueError, TypeError):
+        # Identifier is an invalid format.
+        raise errors.NotSubscribableError()
+    content = get_content_from_id(identifier)
+    if content is None:
+        # Idnetifier did not resolve.
+        raise errors.NotSubscribableError()
+    return content
+
+
 class SubscriptionService(Folder.Folder, SilvaService):
     """Subscription Service
     """
@@ -149,13 +167,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Check and confirm subscription
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        try:
-            content_id = int(content_id)
-        except ValueError:
-            raise errors.NotSubscribableError()
-        content = get_content_from_id(content_id)
-        if content is None:
-            raise errors.NotSubscribableError()
+        content = get_subscribable_content(content_id)
         manager = ISubscriptionManager(content, None)
         if manager is None:
             raise errors.NotSubscribableError()
@@ -170,13 +182,7 @@ class SubscriptionService(Folder.Folder, SilvaService):
         # Check and confirm cancellation
         # NOTE: no doc string, so, not *publishable* TTW
         #
-        try:
-            content_id = int(content_id)
-        except ValueError:
-            raise errors.NotSubscribableError()
-        content = get_content_from_id(content_id)
-        if content is None:
-            raise errors.NotSubscribableError()
+        content = get_subscribable_content(content_id)
         manager = ISubscriptionManager(content, None)
         if manager is None:
             raise errors.CancellationError()
