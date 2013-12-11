@@ -5,9 +5,9 @@ silva.core.subscriptions
 Introduction
 ============
 
-``silva.core.subscriptions`` let visitors subscribe to Silva content
-in order to receive notification emails on modification. You can only
-subscribe to a part of the site or only to a page.
+``silva.core.subscriptions`` let visitors subscribe to `Silva`_
+content in order to receive notification emails on modification. You
+can only subscribe to a part of the site or only to a page.
 
 Subscription registration can be done by visitors via a form rendered
 inside the public layout. If the visitor is not authenticated, the
@@ -27,5 +27,7 @@ template of your choice.
 Code repository
 ===============
 
-You can find the source code for this extension in Mercurial:
-https://hg.infrae.com/silva.app.subscriptions/.
+You can find the source code for this extension in Git:
+https://github.com/silvacms/silva.app.subscriptions
+
+.. _Silva: http://silvacms.org

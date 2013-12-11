@@ -13,7 +13,7 @@ tests_require = [
 
 setup(name='silva.app.subscriptions',
       version=version,
-      description="Let people subscribe to content changes",
+      description="Let people subscribe to content changes in Silva CMS",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
       classifiers=[
@@ -25,7 +25,7 @@ setup(name='silva.app.subscriptions',
       keywords='silva app redirect permanent http',
       author='Sylvain Viollon',
       author_email='info@infrae.com',
-      url='http://infrae.com/products/silva',
+      url='https://github.com/silvacms/silva.app.subscriptions',
       license='BSD',
       package_dir={'': 'src'},
       packages=find_packages('src', exclude=['ez_setup']),
